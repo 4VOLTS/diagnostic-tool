@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4Tools Diagnostic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- ARDUINO THEME SETUP --- */
+        :root { 
+            --arduino-teal: #00979C;
+            --arduino-dark: #232121; 
+            --arduino-gray: #333333;
+            --card-bg: #2f3640;
+            --text: #ffffff;
+            --pass: #00979C;
+            --fail: #E47128; 
+            --batt: #62aeef;
+            --io: #e5b500; 
+            --wa: #25D366;
+        }
+
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background: var(--arduino-dark); 
+            color: var(--text); 
+            margin: 0; padding: 0; 
+            overflow-x: hidden; 
+        }
+        
+        /* HEADER */
+        header { 
+            background: var(--arduino-teal); 
+            color: white; 
+            padding: 15px 20px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        h1 { margin: 0; font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -1px; }
+        .header-sub { font-size: 14px; opacity: 0.9; font-family: 'Roboto Mono', monospace; text-transform: uppercase; }
+        .badge { background: white; color: var(--arduino-teal); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+
+        /* LAYOUT */
+        .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1600px; margin: 0 auto; padding: 0 20px 20px 20px; }
+
+        /* SIDEBAR (Left) */
+        .sidebar { 
+            flex: 0 0 300px; 
+            background: var(--arduino-gray); 
+            padding: 20px; border-radius: 4px; border-left: 5px solid var(--fail); 
+            height: fit-content; font-family: 'Roboto Mono', monospace;
+        }
+        .sidebar h3 { margin-top: 0; color: #f1f1f1; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        .check-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #444; align-items: center; font-size: 12px; }
+        .status { font-weight: bold; }
+        .status.wait { color: #888; }
+        .status.pass { color: var(--pass); }
+        .status.fail { color: var(--fail); }
+
+        /* TOOLS AREA (Right) */
+        .main-content { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-content: start; }
+        
+        @media (max-width: 1100px) { .main-content { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .container { flex-direction: column; } .sidebar { width: 100%; flex: none; } .main-content { grid-template-columns: 1fr; } }
+        
+        .tool-card { 
+            background: var(--arduino-gray); padding: 15px; border-radius: 4px; 
+            border-top: 4px solid var(--arduino-teal); text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 200px; 
+        }
+        .tool-card h3 { margin-top: 0; color: #fff; font-family: 'Roboto Mono', monospace; font-size: 16px; margin-bottom: 5px; }
+        .tool-card p { color: #aaa; font-size: 11px; margin-bottom: 10px; height: 30px; }
+        
+        /* SPECIAL CARDS */
+        .tool-card.batt-card { border-top: 4px solid var(--batt); }
+        .batt-info { font-size: 24px; font-weight: bold; margin: 5px 0; color: white; }
+        .batt-icon { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .tool-card.io-card { border-top: 4px solid var(--io); } 
+
+        /* BUTTONS */
+        button { 
+            background: #4E5B61; color: white; border: none; padding: 8px 15px; 
+            border-radius: 2px; cursor: pointer; transition: 0.2s; font-weight: bold; margin: 3px; 
+            font-family: 'Roboto', sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; width: 100%;
+        }
+        button:hover { background: #637178; }
+        button.primary { background: var(--arduino-teal); } button.primary:hover { background: #007e82; }
+        button.success { background: transparent; border: 1px solid var(--pass); color: var(--pass); } button.success:hover { background: var(--pass); color: white; }
+        button.danger { background: transparent; border: 1px solid var(--fail); color: var(--fail); } button.danger:hover { background: var(--fail); color: white; }
+        button.wa-btn { background: var(--wa); color: white; border: none; } button.wa-btn:hover { background: #1ebe57; }
+
+        /* DROPDOWN */
+        select { background: #222; color: white; border: 1px solid #444; padding: 5px; width: 100%; margin-bottom: 10px; font-family: 'Roboto Mono', monospace; display: none; font-size: 11px; }
+
+        /* INPUTS GLOBAL FIX */
+        input, textarea { user-select: text !important; -webkit-user-select: text !important; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); overflow: auto; }
+        .modal-content { background-color: var(--arduino-gray); margin: 5% auto; padding: 25px; border: 1px solid #555; width: 90%; max-width: 900px; border-radius: 4px; text-align: center; position: relative; border-top: 5px solid var(--arduino-teal); }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+
+        /* INPUTS IN MODAL */
+        .report-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .report-inputs input { 
+            flex: 1; background: #222; border: 1px solid #555; color: var(--arduino-teal); padding: 10px; 
+            font-family: 'Roboto Mono', monospace; font-size: 13px; border-radius: 2px;
+        }
+        .report-inputs input::placeholder { color: #555; }
+
+        /* KEYBOARD */
+        .keyboard-wrapper { display: grid; gap: 5px; margin-top: 20px; justify-content: center; user-select: none; font-family: 'Roboto Mono', monospace; }
+        .kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+        .key { background: #222; border: 1px solid #444; border-radius: 3px; min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ccc; transition: 0.05s; }
+        .key.tested { background: var(--arduino-teal); color: white; border-color: var(--arduino-teal); }
+        .key.active { background: white !important; color: black !important; transform: scale(0.95); box-shadow: 0 0 10px white !important; }
+        .k-space { width: 250px; } .k-shift { width: 90px; } .k-enter { width: 80px; } .k-tab { width: 60px; } .k-back { width: 70px; } .k-caps { width: 80px; }
+
+        /* OVERLAYS */
+        #screenOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; cursor: pointer; }
+        #hz-tester { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #222; z-index: 9999; }
+        .moving-bar { position: absolute; top: 0; height: 100%; width: 20px; background: white; left: 0; }
+        .hz-info { position: absolute; top: 30px; left: 30px; font-family: 'Roboto Mono', monospace; background: rgba(30, 30, 30, 0.9); padding: 20px; border-left: 5px solid var(--arduino-teal); color: #ddd; }
+        #touchCanvas { background: #111; cursor: crosshair; touch-action: none; border: 1px dashed #555; }
+
+        .audio-playing-indicator { height: 4px; width: 0%; background: var(--arduino-teal); margin: 8px auto; transition: width 0.1s; border-radius: 2px; }
+        
+        .io-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 11px; text-align: left; }
+        .io-btns { display: flex; gap: 5px; }
+        .io-btns button { width: auto; padding: 4px 8px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>4TOOLS</h1>
+            <div class="header-sub">DEVELOPED BY 4VOLTS</div>
+        </div>
+        <div class="badge">PRO EDITION</div>
+    </header>
+
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <h3>// QC_LOG</h3>
+            <div class="check-item"><span>01_WiFi</span> <span id="s-wifi" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>02_Battery</span> <span id="s-batt" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>03_Keys</span> <span id="s-kb" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>04_Display</span> <span id="s-lcd" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>05_Touch</span> <span id="s-touch" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>06_Camera</span> <span id="s-cam" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>07_Mic</span> <span id="s-mic" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>08_Speaker</span> <span id="s-spk" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>09_USB</span> <span id="s-usb" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span>10_HDMI</span> <span id="s-hdmi" class="status wait">WAITING...</span></div>
+            <br>
+            <button class="primary" onclick="openReportModal()" style="background-color: var(--pass);">GENERATE REPORT</button>
+            <button onclick="window.print()" style="width:100%; background: #444;">PRINT LOG</button>
+        </div>
+
+        <!-- MAIN TOOLS GRID (3 COLUMNS) -->
+        <div class="main-content">
+
+            <!-- 1. BATTERY -->
+            <div class="tool-card batt-card">
+                <div>
+                    <h3>BATTERY.status()</h3>
+                    <p>Charging circuit check.</p>
+                    <div class="batt-info" id="battLevel">--%</div>
+                    <div class="batt-icon" id="battState">DETECTING...</div>
+                </div>
+                <div id="batt-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="success" onclick="updateStatus('batt', true)">OK</button>
+                        <button class="danger" onclick="updateStatus('batt', false)">FAIL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TOUCH / DRAW -->
+            <div class="tool-card">
+                <div>
+                    <h3>INPUT.touch()</h3>
+                    <p>Digitizer & trackpad test.</p>
+                    <button class="primary" onclick="openTouchModal()">OPEN CANVAS</button>
+                </div>
+                <div id="touch-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="success" onclick="updateStatus('touch', true)">OK</button>
+                        <button class="danger" onclick="updateStatus('touch', false)">FAIL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. KEYBOARD -->
+            <div class="tool-card">
+                <div>
+                    <h3>KEYBOARD.test()</h3>
+                    <p>Key matrix integrity.</p>
+                    <button class="primary" onclick="openKeyboardModal()">LAUNCH TEST</button>
+                </div>
+                <div id="kb-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="success" onclick="updateStatus('kb', true)">PASS</button>
+                        <button class="danger" onclick="updateStatus('kb', false)">FAIL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. SCREEN -->
+            <div class="tool-card">
+                <div>
+                    <h3>DISPLAY.test()</h3>
+                    <p>Pixels & Refresh rate.</p>
+                    <button class="primary" onclick="startColorTest()">COLOR SEQ</button>
+                    <button class="primary" onclick="startHzTest()">MOTION HZ</button>
+                </div>
+                <div id="lcd-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="success" onclick="updateStatus('lcd', true)">PASS</button>
+                        <button class="danger" onclick="updateStatus('lcd', false)">FAIL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. PHYSICAL PORTS -->
+            <div class="tool-card io-card">
+                <div>
+                    <h3>PORTS.io()</h3>
+                    <p>Manual I/O verification.</p>
+                    <div class="io-row">
+                        <span>USB:</span>
+                        <div class="io-btns"><button class="success" onclick="updateStatus('usb', true)">OK</button><button class="danger" onclick="updateStatus('usb', false)">NO</button></div>
+                    </div>
+                    <div class="io-row">
+                        <span>HDMI:</span>
+                        <div class="io-btns"><button class="success" onclick="updateStatus('hdmi', true)">OK</button><button class="danger" onclick="updateStatus('hdmi', false)">NO</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. CAMERA -->
+            <div class="tool-card">
+                <div>
+                    <h3>CAMERA.init()</h3>
+                    <p>Visual sensor check.</p>
+                    <select id="camSelect" onchange="startCam(this.value)"></select>
+                    <video id="camFeed" autoplay playsinline style="width:100%; display:none; border-radius:2px; background:black; border:1px solid #444; margin-bottom:5px; height:80px; object-fit:cover;"></video>
+                    <button class="primary" onclick="startCam()">START CAM</button>
+                </div>
+                <div id="cam-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
+                    <div style="display:flex; gap:5px;">
+                        <button class="success" onclick="updateStatus('cam', true)">PASS</button>
+                        <button class="danger" onclick="updateStatus('cam', false)">FAIL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. AUDIO IO -->
+            <div class="tool-card">
+                <div>
+                    <h3>AUDIO.io()</h3>
+                    <p>Mic In & Speaker Out.</p>
+                    
+                    <!-- MIC -->
+                    <div style="background:#222; height:4px; margin:5px 0; border:1px solid #444;">
+                        <div id="micBar" class="audio-playing-indicator" style="width:0%;"></div>
+                    </div>
+                    <button class="primary" onclick="startMic()">TEST MIC</button>
+
+                    <!-- SPK -->
+                    <button id="btn-spk" class="primary" onclick="toggleSpeakerTest()" style="margin-top:5px;">▶ MUSIC (30s)</button>
+                    <div id="spk-indicator" class="audio-playing-indicator"></div>
+                    <div id="spk-status" style="font-size:9px; color:#666; margin-top:2px;">*Need Internet</div>
+                </div>
+                
+                <div style="margin-top:10px; border-top:1px solid #444; padding-top:10px; font-size:10px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span>MIC:</span>
+                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('mic', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('mic', false)" style="padding:2px 5px;">NO</button></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>SPK:</span>
+                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('spk', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('spk', false)" style="padding:2px 5px;">NO</button></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- REPORT MODAL -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('reportModal').style.display='none'">&times;</span>
+            <h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">GENERATED_REPORT</h2>
+            
+            <div class="report-inputs">
+                <input type="text" id="modalTech" placeholder="Technician Name" value="">
+                <input type="text" id="modalComp" placeholder="Shop / Company Name" value="">
+                <button class="primary" onclick="generateReport()" style="width:auto;">🔄 REFRESH</button>
+            </div>
+
+            <textarea id="finalReportArea" style="width:100%;height:300px;font-family:'Roboto Mono',monospace;background:#111;color:#ddd;border:none;padding:15px;"></textarea>
+            
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="success" onclick="copyReport()" style="flex:1;">COPY TEXT</button>
+                <button class="wa-btn" onclick="shareToWhatsapp()" style="flex:1;">SEND TO WHATSAPP 📱</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTHER MODALS -->
+    <div id="kbModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeKeyboardModal()">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">KEYBOARD_TEST</h2><div class="keyboard-wrapper" id="keyboard-layout"></div></div></div>
+    <div id="touchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">TOUCH_TEST</h2><canvas id="touchCanvas" width="800" height="400"></canvas><br><button class="primary" onclick="clearCanvas()">CLEAR</button></div></div>
+    <div id="screenOverlay"><div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#888; font-size:20px; pointer-events:none; font-family:'Roboto Mono';">CLICK_TO_CYCLE_COLOR<br>ESC_TO_EXIT</div></div>
+    <div id="hz-tester"><div class="moving-bar" id="hz-bar"></div><div class="hz-info"><span style="color:#aaa; font-size:12px;">// REFRESH RATE MONITOR</span><br>FPS: <span id="frame-count" style="color:var(--arduino-teal); font-size:40px;">CALC...</span><br><div style="margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-left:3px solid var(--arduino-teal);">RES: <span id="res-disp" style="color:white;font-size:18px;">DETECT...</span></div></div></div>
+
+    <script>
+        const apiKey = ""; 
+        
+        // --- GLOBAL INPUT GETTER (From Modal) ---
+        function getGlobalIdentity() {
+            return {
+                tech: document.getElementById('modalTech').value || "Technician",
+                comp: document.getElementById('modalComp').value || "Computer Shop"
+            };
+        }
+
+        // --- OPEN MODAL ---
+        function openReportModal() {
+            document.getElementById('reportModal').style.display = 'block';
+            generateReport(); // Auto generate
+        }
+
+        // --- REPORT GENERATION (MANUAL ONLY) ---
+        function generateReport() {
+            const textArea = document.getElementById('finalReportArea');
+            const id = getGlobalIdentity();
+            const getStatus = (elId) => document.getElementById('s-'+elId).innerText;
+            const data = {
+                wifi: getStatus('wifi'), batt: getStatus('batt'), kb: getStatus('kb'),
+                touch: getStatus('touch'), lcd: getStatus('lcd'), cam: getStatus('cam'),
+                mic: getStatus('mic'), spk: getStatus('spk'), usb: getStatus('usb'), hdmi: getStatus('hdmi'),
+                tech: id.tech, comp: id.comp
+            };
+            textArea.value = generateManualReport(data);
+        }
+
+        function generateManualReport(d) {
+            const date = new Date().toLocaleDateString('en-GB');
+            const time = new Date().toLocaleTimeString('en-GB');
+            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\nHARDWARE TEST RESULTS:\n\n1. Network (WiFi):     [ ${d.wifi} ]\n2. Power (Battery):    [ ${d.batt} ]\n3. Keyboard:           [ ${d.kb} ]\n4. Screen / Display:   [ ${d.lcd} ]\n5. Touch Panel:        [ ${d.touch} ]\n6. Webcam:             [ ${d.cam} ]\n7. Microphone:         [ ${d.mic} ]\n8. Speaker:            [ ${d.spk} ]\n9. USB Port:           [ ${d.usb} ]\n10. HDMI / External:   [ ${d.hdmi} ]\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n\nThank you for choosing ${d.comp}.\n========================================`;
+        }
+
+        function copyReport() { const t = document.getElementById("finalReportArea"); t.select(); document.execCommand("copy"); alert("Copied!"); }
+        function shareToWhatsapp() {
+            const text = document.getElementById("finalReportArea").value;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function updateStatus(id, isPass) {
+            const el = document.getElementById('s-' + id);
+            if (isPass) { el.innerText = "PASS_OK"; el.className = "status pass"; } 
+            else { el.innerText = "FAIL_ERR"; el.className = "status fail"; }
+        }
+
+        // --- INPUT FIX (PREVENT KEYBOARD TESTER FROM BLOCKING TYPING) ---
+        document.addEventListener('keydown', (e) => { 
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
+            e.preventDefault(); handleKey(e, true); 
+        });
+        document.addEventListener('keyup', (e) => { 
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
+            e.preventDefault(); handleKey(e, false); 
+        });
+
+        // --- MODULES ---
+        window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); }
+        
+        function initBattery() {
+            const l = document.getElementById('battLevel'); const s = document.getElementById('battState');
+            if ('getBattery' in navigator) navigator.getBattery().then(b => {
+                const u = () => { l.innerText=(b.level*100).toFixed(0)+"%"; s.innerText=b.charging?"CHARGING (AC) ⚡":"BATTERY MODE"; s.style.color=b.charging?"#00ff00":"#ff9900"; };
+                u(); b.addEventListener('chargingchange', u); b.addEventListener('levelchange', u);
+            }); else { l.innerText="N/A"; s.innerText="NO API"; }
+        }
+
+        function openTouchModal() {
+            const m=document.getElementById('touchModal'); m.style.display="block";
+            const c=document.getElementById('touchCanvas'); const x=c.getContext('2d');
+            c.width=c.parentElement.clientWidth-50; let p=false;
+            const d=(e)=>{ if(!p)return; const r=c.getBoundingClientRect(); const X=(e.clientX||e.touches[0].clientX)-r.left; const Y=(e.clientY||e.touches[0].clientY)-r.top; x.lineWidth=5; x.lineCap='round'; x.strokeStyle='#00979C'; x.lineTo(X,Y); x.stroke(); x.beginPath(); x.moveTo(X,Y); };
+            c.onmousedown=(e)=>{p=true;d(e)}; c.onmouseup=()=>{p=false;x.beginPath()}; c.onmousemove=d;
+            c.ontouchstart=(e)=>{e.preventDefault();p=true;d(e)}; c.ontouchend=(e)=>{e.preventDefault();p=false;x.beginPath()}; c.ontouchmove=(e)=>{e.preventDefault();d(e)};
+        }
+        function clearCanvas() { const c=document.getElementById('touchCanvas'); c.getContext('2d').clearRect(0,0,c.width,c.height); }
+
+        const kbLayout = [["Esc","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Del"],["`","1","2","3","4","5","6","7","8","9","0","-","=","Back"],["Tab","Q","W","E","R","T","Y","U","I","O","P","[","]","\\"],["Caps","A","S","D","F","G","H","J","K","L",";","'","Enter"],["Shift","Z","X","C","V","B","N","M",",",".","/","Shift"],["Ctrl","Win","Alt","Space","Alt","Fn","Ctrl","◄","▼","▲","►"]];
+        function generateKeyboard() {
+            const w=document.getElementById('keyboard-layout');
+            kbLayout.forEach(row=>{ const d=document.createElement('div'); d.className='kb-row'; row.forEach(k=>{ const b=document.createElement('div'); b.className='key'; b.innerText=k; b.dataset.key=k.toUpperCase(); if(k==="Space")b.classList.add('k-space'); if(k==="Shift")b.classList.add('k-shift'); if(k==="Enter")b.classList.add('k-enter'); d.appendChild(b); }); w.appendChild(d); });
+        }
+        function handleKey(e,d) {
+            let k=e.key.toUpperCase(); let c=e.code;
+            if(c==="Space")k="SPACE"; if(c==="Escape"){if(d){document.getElementById('kbModal').style.display="none";exitScreenTests();}return;}
+            if(c.includes("Enter"))k="ENTER"; if(c.includes("Shift"))k="SHIFT"; if(c.includes("Control"))k="CTRL"; if(c.includes("Alt"))k="ALT"; if(c.includes("Meta"))k="WIN";
+            if(k==="ARROWUP")k="▲"; if(k==="ARROWDOWN")k="▼"; if(k==="ARROWLEFT")k="◄"; if(k==="ARROWRIGHT")k="►";
+            document.querySelectorAll('.key').forEach(el=>{if(el.dataset.key===k){if(d){el.classList.add('active');el.classList.add('tested');}else el.classList.remove('active');}});
+        }
+        function openKeyboardModal() { document.getElementById('kbModal').style.display="block"; }
+        function closeKeyboardModal() { document.getElementById('kbModal').style.display="none"; }
+
+        const col=["red","green","blue","white","black"]; let cIdx=0;
+        function startColorTest() { const s=document.getElementById('screenOverlay'); s.style.display="block"; s.style.background=col[0]; enterFullscreen(s); document.getElementById('lcd-verify').style.display="block"; }
+        document.getElementById('screenOverlay').onclick=function(){ cIdx++; if(cIdx>=col.length){cIdx=0;exitScreenTests();}else this.style.background=col[cIdx]; };
+        
+        let aniId; let pos=0; let fc=0; let lFps=performance.now();
+        function startHzTest() { 
+            const h=document.getElementById('hz-tester'); h.style.display="block"; enterFullscreen(h); 
+            const d=window.devicePixelRatio||1; document.getElementById('res-disp').innerText=`${Math.round(window.screen.width*d)} x ${Math.round(window.screen.height*d)} px`;
+            fc=0; lFps=performance.now(); animateBar(); document.getElementById('lcd-verify').style.display="block";
+        }
+        function animateBar(n) {
+            const b=document.getElementById('hz-bar'); pos+=15; if(pos>window.innerWidth)pos=-50; b.style.transform=`translateX(${pos}px)`;
+            if(!n)n=performance.now(); fc++; if(n-lFps>=1000){ document.getElementById('frame-count').innerText=Math.round((fc*1000)/(n-lFps))+" Hz"; lFps=n; fc=0; }
+            aniId=requestAnimationFrame(animateBar);
+        }
+        document.getElementById('hz-tester').onclick=exitScreenTests;
+        function exitScreenTests() { document.getElementById('screenOverlay').style.display="none"; document.getElementById('hz-tester').style.display="none"; cancelAnimationFrame(aniId); try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}catch(e){} }
+        function enterFullscreen(e) { try{if(e.requestFullscreen)e.requestFullscreen().catch(()=>{});}catch(e){} }
+
+        // CAM
+        function startCam(id=null) {
+            const v=document.getElementById('camFeed');
+            if(!navigator.mediaDevices) return alert("API Missing");
+            let c={video:true}; if(id) c={video:{deviceId:{exact:id}}};
+            navigator.mediaDevices.getUserMedia(c).then(s=>{ v.srcObject=s; v.style.display="block"; document.getElementById('cam-verify').style.display="block"; if(!id)popCam(); })
+            .catch(e=>{ if(e.name==="NotFoundError")alert("No Cam Found"); else alert("Cam Error: "+e.message); });
+        }
+        async function popCam() {
+            if(!navigator.mediaDevices.enumerateDevices)return;
+            try{ const d=await navigator.mediaDevices.enumerateDevices(); const v=d.filter(x=>x.kind==='videoinput'); const s=document.getElementById('camSelect');
+            if(v.length>0){ s.innerHTML=""; const o=document.createElement('option'); o.text="Select Cam..."; o.disabled=true; o.selected=true; s.appendChild(o);
+            v.forEach((x,i)=>{const p=document.createElement('option'); p.value=x.deviceId; p.text=x.label||`Cam ${i+1}`; s.appendChild(p);});
+            if(v.length>1)s.style.display="block"; } }catch(e){}
+        }
+
+        // MIC
+        function startMic() {
+            if(!navigator.mediaDevices) return alert("API Missing");
+            navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
+                const c=new(window.AudioContext||window.webkitAudioContext)(); const m=c.createMediaStreamSource(s); const a=c.createAnalyser(); m.connect(a);
+                const d=new Uint8Array(a.frequencyBinCount);
+                function l(){ a.getByteFrequencyData(d); let t=0; for(let i=0;i<d.length;i++)t+=d[i]; document.getElementById('micBar').style.width=((t/d.length)*2)+"%"; requestAnimationFrame(l); } l();
+            }).catch(e=>{ alert("Mic Error: "+e.message); });
+        }
+
+        // AUDIO
+        let ap=null; let si; let run=false; let tl=30; const url="https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/race1.ogg";
+        function toggleSpeakerTest() { if(run)stopS(); else startS(); }
+        function startS() {
+            const b=document.getElementById('btn-spk'); const i=document.getElementById('spk-indicator');
+            if(!ap){ ap=new Audio(url); ap.loop=true; } ap.currentTime=0; ap.play().then(()=>{
+                run=true; tl=30; b.classList.add('danger'); b.classList.remove('primary'); document.getElementById('spk-status').innerText="PLAYING...";
+                si=setInterval(()=>{ tl--; b.innerText=`STOP (${tl}s)`; i.style.width=(Math.floor(Math.random()*80)+20)+"%"; if(tl<=0)stopS(); },1000);
+            }).catch(e=>{ alert("Conn Err: "+e); stopS(); });
+        }
+        function stopS() {
+            if(ap){ ap.pause(); ap.currentTime=0; } clearInterval(si); run=false;
+            const b=document.getElementById('btn-spk'); b.innerText="▶ PLAY MUSIC (30s)"; b.classList.remove('danger'); b.classList.add('primary');
+            document.getElementById('spk-indicator').style.width="0%"; document.getElementById('spk-status').innerText="*Need Internet";
+        }
+    </script>
+</body>
+</html>
