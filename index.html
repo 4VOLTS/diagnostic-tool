@@ -4,141 +4,208 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Tools Diagnostic</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- ARDUINO THEME SETUP --- */
-        :root { 
-            --arduino-teal: #00979C;
-            --arduino-dark: #232121; 
-            --arduino-gray: #333333;
-            --card-bg: #2f3640;
+        /* --- MONOCHROME THEME (black & white) --- */
+        :root {
+            --bg: #000000;
+            --surface: #0c0c0c;
+            --surface-2: #161616;
+            --line: #242424;
+            --line-strong: #3d3d3d;
             --text: #ffffff;
-            --pass: #00979C;
-            --fail: #E47128; 
-            --batt: #62aeef;
-            --io: #e5b500; 
-            --wa: #25D366;
+            --muted: #8f8f8f;
+            --dim: #555555;
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+            --sans: 'Inter', system-ui, sans-serif;
+            --radius: 10px;
         }
 
-        body { 
-            font-family: 'Roboto', sans-serif; 
-            background: var(--arduino-dark); 
-            color: var(--text); 
-            margin: 0; padding: 0; 
-            overflow-x: hidden; 
-        }
-        
+        * { box-sizing: border-box; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); margin: 0; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
         /* HEADER */
-        header { 
-            background: var(--arduino-teal); 
-            color: white; 
-            padding: 15px 20px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            margin-bottom: 25px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        h1 { margin: 0; font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -1px; }
-        .header-sub { font-size: 14px; opacity: 0.9; font-family: 'Roboto Mono', monospace; text-transform: uppercase; }
-        .badge { background: white; color: var(--arduino-teal); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .logo { width: 42px; height: 42px; background: var(--text); color: var(--bg); border-radius: 8px; display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 22px; }
+        h1 { margin: 0; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+        .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+        .badge { border: 1px solid var(--text); color: var(--text); padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 2px; font-family: var(--mono); white-space: nowrap; }
 
         /* LAYOUT */
-        .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1600px; margin: 0 auto; padding: 0 20px 20px 20px; }
+        .container { display: flex; gap: 24px; max-width: 1600px; margin: 0 auto; padding: 0 28px 28px; align-items: flex-start; }
 
-        /* SIDEBAR (Left) */
-        .sidebar { 
-            flex: 0 0 300px; 
-            background: var(--arduino-gray); 
-            padding: 20px; border-radius: 4px; border-left: 5px solid var(--fail); 
-            height: fit-content; font-family: 'Roboto Mono', monospace;
-        }
-        .sidebar h3 { margin-top: 0; color: #f1f1f1; border-bottom: 1px solid #555; padding-bottom: 10px; }
-        .check-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #444; align-items: center; font-size: 12px; }
-        .status { font-weight: bold; }
-        .status.wait { color: #888; }
-        .status.pass { color: var(--pass); }
-        .status.fail { color: var(--fail); }
+        /* SIDEBAR */
+        .sidebar { flex: 0 0 300px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+        .sidebar h3 { margin: 0 0 4px; font-family: var(--mono); font-size: 13px; letter-spacing: 2px; }
+        .qc-progress { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); margin: 14px 0 6px; }
+        .qc-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+        .qc-bar div { height: 100%; width: 0; background: var(--text); transition: width 0.3s; }
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .check-item:last-of-type { border-bottom: none; }
+        .check-item .idx { font-family: var(--mono); color: var(--dim); margin-right: 10px; font-size: 11px; }
+        .status { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 999px; border: 1px solid transparent; }
+        .status.wait { color: var(--dim); border-color: var(--line); }
+        .status.pass { color: var(--text); border-color: var(--text); }
+        .status.fail { color: var(--bg); background: var(--text); }
+        .status.na { color: var(--muted); border: 1px dashed var(--dim); }
+        .sidebar-actions { display: grid; gap: 8px; margin-top: 18px; }
 
-        /* TOOLS AREA (Right) */
-        .main-content { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-content: start; }
-        
-        @media (max-width: 1100px) { .main-content { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 768px) { .container { flex-direction: column; } .sidebar { width: 100%; flex: none; } .main-content { grid-template-columns: 1fr; } }
-        
-        .tool-card { 
-            background: var(--arduino-gray); padding: 15px; border-radius: 4px; 
-            border-top: 4px solid var(--arduino-teal); text-align: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; justify-content: space-between;
-            min-height: 200px; 
+        /* TOOLS GRID */
+        .main-content { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-content: start; }
+        @media (max-width: 1150px) { .main-content { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 800px) {
+            header { padding: 16px; }
+            .header-sub { letter-spacing: 1px; }
+            .badge { font-size: 9px; padding: 3px 8px; letter-spacing: 1px; }
+            .container { flex-direction: column; padding: 0 16px 16px; }
+            .sidebar { width: 100%; flex: none; position: static; }
+            .main-content { grid-template-columns: 1fr; width: 100%; }
         }
-        .tool-card h3 { margin-top: 0; color: #fff; font-family: 'Roboto Mono', monospace; font-size: 16px; margin-bottom: 5px; }
-        .tool-card p { color: #aaa; font-size: 11px; margin-bottom: 10px; height: 30px; }
-        
-        /* SPECIAL CARDS */
-        .tool-card.batt-card { border-top: 4px solid var(--batt); }
-        .batt-info { font-size: 24px; font-weight: bold; margin: 5px 0; color: white; }
-        .batt-icon { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-        .tool-card.io-card { border-top: 4px solid var(--io); } 
+
+        .tool-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; transition: border-color 0.2s; }
+        .tool-card:hover { border-color: var(--line-strong); }
+        .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+        .card-head .num { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+        .tool-card h3 { margin: 0; font-family: var(--mono); font-size: 15px; font-weight: 700; }
+        .tool-card p { color: var(--muted); font-size: 12px; margin: 0 0 16px; }
+        .verify { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+        .batt-info { font-family: var(--mono); font-size: 40px; font-weight: 700; letter-spacing: -1px; }
+        .batt-icon { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+        .io-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-family: var(--mono); font-size: 12px; border-bottom: 1px solid var(--line); }
+        .io-row:last-child { border-bottom: none; }
+        .qc-rows { margin-top: 12px; }
+        .io-btns { display: flex; gap: 6px; }
+        .io-btns button { width: auto; padding: 6px 10px; margin: 0; }
+        .lr-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .lr-btns button { padding: 10px 6px; }
+        .btn-stack { display: grid; gap: 8px; }
+        .hint { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 6px; }
+
+        /* SYSTEM SPECS */
+        .spec-card { grid-column: 1 / -1; min-height: 0; }
+        .spec-auto { margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 8px; }
+        .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .spec { background: var(--bg); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .spec-k { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+        .spec-v { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+
+        .full-specs { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+        .fs-title { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 12px; }
+        .fs-title span { font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
+        .fs-steps { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 10px; align-items: center; }
+        @media (max-width: 800px) { .fs-steps { grid-template-columns: 1fr; } }
+        .fs-step { display: flex; align-items: center; gap: 10px; }
+        .fs-n { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-strong); display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+        .fs-text { font-size: 12px; color: var(--muted); line-height: 1.5; }
+        .fs-text b { color: var(--text); font-weight: 600; }
+        #fsInput { width: 100%; margin-top: 12px; background: var(--bg); color: var(--text); border: 1px dashed var(--line-strong); border-radius: 6px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; resize: vertical; }
+        #fsInput:focus { outline: none; border-color: var(--text); }
+        .spec-link { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+        .spec-link:hover { color: var(--text); }
 
         /* BUTTONS */
-        button { 
-            background: #4E5B61; color: white; border: none; padding: 8px 15px; 
-            border-radius: 2px; cursor: pointer; transition: 0.2s; font-weight: bold; margin: 3px; 
-            font-family: 'Roboto', sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; width: 100%;
-        }
-        button:hover { background: #637178; }
-        button.primary { background: var(--arduino-teal); } button.primary:hover { background: #007e82; }
-        button.success { background: transparent; border: 1px solid var(--pass); color: var(--pass); } button.success:hover { background: var(--pass); color: white; }
-        button.danger { background: transparent; border: 1px solid var(--fail); color: var(--fail); } button.danger:hover { background: var(--fail); color: white; }
-        button.wa-btn { background: var(--wa); color: white; border: none; } button.wa-btn:hover { background: #1ebe57; }
+        button { background: transparent; color: var(--text); border: 1px solid var(--line-strong); padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; width: 100%; margin: 0; }
+        button:hover { border-color: var(--text); }
+        button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+        button.primary:hover { background: #d9d9d9; border-color: #d9d9d9; }
+        button.success { border-color: var(--text); }
+        button.success:hover { background: var(--text); color: var(--bg); }
+        button.danger { border-style: dashed; color: var(--muted); }
+        button.danger:hover { border-style: solid; border-color: var(--text); color: var(--text); }
+        button.na-btn { border-color: var(--line); color: var(--dim); }
+        button.na-btn:hover { border-color: var(--muted); color: var(--text); }
 
         /* DROPDOWN */
-        select { background: #222; color: white; border: 1px solid #444; padding: 5px; width: 100%; margin-bottom: 10px; font-family: 'Roboto Mono', monospace; display: none; font-size: 11px; }
+        select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px; width: 100%; margin-bottom: 10px; font-family: var(--mono); display: none; font-size: 11px; }
 
-        /* INPUTS GLOBAL FIX */
         input, textarea { user-select: text !important; -webkit-user-select: text !important; }
 
         /* MODAL */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); overflow: auto; }
-        .modal-content { background-color: var(--arduino-gray); margin: 5% auto; padding: 25px; border: 1px solid #555; width: 90%; max-width: 900px; border-radius: 4px; text-align: center; position: relative; border-top: 5px solid var(--arduino-teal); }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow: auto; }
+        .modal-content { background: var(--surface); margin: 4% auto; padding: 28px; border: 1px solid var(--line-strong); width: 92%; max-width: 900px; border-radius: 14px; text-align: center; position: relative; }
+        .modal-content h2 { margin: 0 0 18px; font-family: var(--mono); font-size: 16px; letter-spacing: 3px; }
+        .close-btn { position: absolute; top: 16px; right: 20px; color: var(--muted); font-size: 26px; line-height: 1; cursor: pointer; }
+        .close-btn:hover { color: var(--text); }
 
-        /* INPUTS IN MODAL */
-        .report-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .report-inputs input { 
-            flex: 1; background: #222; border: 1px solid #555; color: var(--arduino-teal); padding: 10px; 
-            font-family: 'Roboto Mono', monospace; font-size: 13px; border-radius: 2px;
-        }
-        .report-inputs input::placeholder { color: #555; }
+        .report-inputs { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .report-inputs input { flex: 1; min-width: 160px; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); padding: 10px 12px; font-family: var(--mono); font-size: 13px; }
+        .report-inputs input:focus { outline: none; border-color: var(--text); }
+        .report-inputs input::placeholder { color: var(--dim); }
+        .report-inputs button { width: auto; }
+        #finalReportArea { width: 100%; height: 320px; font-family: var(--mono); font-size: 12px; background: var(--bg); color: #e6e6e6; border: 1px solid var(--line); border-radius: 8px; padding: 16px; resize: vertical; }
+        .report-actions { display: flex; gap: 10px; margin-top: 12px; }
 
-        /* KEYBOARD */
-        .keyboard-wrapper { display: grid; gap: 5px; margin-top: 20px; justify-content: center; user-select: none; font-family: 'Roboto Mono', monospace; }
-        .kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
-        .key { background: #222; border: 1px solid #444; border-radius: 3px; min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ccc; transition: 0.05s; }
-        .key.tested { background: var(--arduino-teal); color: white; border-color: var(--arduino-teal); }
-        .key.active { background: white !important; color: black !important; transform: scale(0.95); box-shadow: 0 0 10px white !important; }
-        .k-space { width: 250px; } .k-shift { width: 90px; } .k-enter { width: 80px; } .k-tab { width: 60px; } .k-back { width: 70px; } .k-caps { width: 80px; }
+        /* KEYBOARD (15.6" laptop layout with numpad; sizes are in key units, --u is set by JS to fit) */
+        #kbModal .modal-content { max-width: 1200px; }
+        .kb-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: left; }
+        .kb-toolbar button { width: auto; }
+        .kb-count { color: var(--text); font-size: 22px; font-weight: 700; }
+        .kb-last { color: var(--text); }
+        .kb-scroll { overflow-x: auto; padding-bottom: 6px; }
+        .keyboard-wrapper { --u: 44px; position: relative; margin: 10px auto 0; user-select: none; font-family: var(--mono); width: calc(var(--u) * 19.25); height: calc(var(--u) * 5.9); }
+        .key { position: absolute; background: #111; border: 1px solid #2e2e2e; border-bottom-width: 3px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: max(8px, calc(var(--u) * 0.24)); font-weight: 600; color: #9a9a9a; transition: 0.06s; cursor: pointer; overflow: hidden; white-space: nowrap; }
+        .key:hover { border-color: var(--line-strong); }
+        .key.tested { background: var(--text); color: var(--bg); border-color: #bdbdbd; }
+        .key.active { background: var(--bg) !important; color: var(--text) !important; border: 2px solid var(--text) !important; transform: scale(0.94); }
+        .key.na { background: transparent; border: 1px dashed #333; color: #444; text-decoration: line-through; }
+        .kb-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+        .kb-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+        .lg-untested::before { background: #111; border: 1px solid #2e2e2e; }
+        .lg-tested::before { background: var(--text); }
+        .lg-na::before { border: 1px dashed #555; }
+        .kb-hint { font-size: 11px; color: var(--muted); margin-top: 12px; font-family: var(--mono); line-height: 1.7; }
+
+        /* TOUCHPAD */
+        #tpadModal .modal-content { max-width: 900px; }
+        .tp-checks { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
+        .tp-chip { font-family: var(--mono); font-size: 11px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); transition: 0.15s; }
+        .tp-chip.done { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .tp-chip.done::before { content: "✓ "; }
+        .tp-area { position: relative; height: 340px; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--bg); overflow: hidden; display: grid; place-items: center; cursor: crosshair; user-select: none; overscroll-behavior: contain; }
+        .tp-area.pressed { border-color: var(--text); border-style: solid; }
+        .tp-msg { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; line-height: 1.8; pointer-events: none; }
+        .tp-msg span { color: var(--dim); font-size: 11px; letter-spacing: 0; }
+        .tp-dot { position: absolute; top: -6px; left: -6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--text); pointer-events: none; transform: translate(-100px, -100px); }
 
         /* OVERLAYS */
-        #screenOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; cursor: pointer; }
-        #hz-tester { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #222; z-index: 9999; }
+        #screenOverlay { display: none; position: fixed; inset: 0; z-index: 9999; cursor: pointer; }
+        .overlay-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888; font-size: 18px; pointer-events: none; font-family: var(--mono); text-align: center; mix-blend-mode: difference; }
+        #hz-tester { display: none; position: fixed; inset: 0; background: #111; z-index: 9999; }
         .moving-bar { position: absolute; top: 0; height: 100%; width: 20px; background: white; left: 0; }
-        .hz-info { position: absolute; top: 30px; left: 30px; font-family: 'Roboto Mono', monospace; background: rgba(30, 30, 30, 0.9); padding: 20px; border-left: 5px solid var(--arduino-teal); color: #ddd; }
-        #touchCanvas { background: #111; cursor: crosshair; touch-action: none; border: 1px dashed #555; }
+        .hz-info { position: absolute; top: 30px; left: 30px; font-family: var(--mono); background: rgba(0,0,0,0.9); padding: 20px 24px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--muted); font-size: 12px; }
+        #frame-count { color: var(--text); font-size: 44px; font-weight: 700; display: block; margin: 4px 0 10px; }
+        #res-disp { color: var(--text); font-size: 16px; }
+        #touchCanvas { background: var(--bg); cursor: crosshair; touch-action: none; border: 1px dashed var(--line-strong); border-radius: 8px; display: block; margin: 0 auto 14px; }
+        #touchModal .modal-content button { width: auto; padding: 10px 28px; }
 
-        .audio-playing-indicator { height: 4px; width: 0%; background: var(--arduino-teal); margin: 8px auto; transition: width 0.1s; border-radius: 2px; }
-        
-        .io-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 11px; text-align: left; }
-        .io-btns { display: flex; gap: 5px; }
-        .io-btns button { width: auto; padding: 4px 8px; }
+        .meter { background: var(--bg); height: 4px; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; margin: 4px 0 10px; }
+        .audio-playing-indicator { height: 4px; width: 0%; background: var(--text); margin: 8px auto; transition: width 0.1s; border-radius: 2px; }
+        .meter .audio-playing-indicator { margin: 0; height: 100%; }
+
+        /* PRINT: plain black on white */
+        @media print {
+            body { background: #fff; color: #000; }
+            header { border-color: #000; }
+            .logo { background: #000; color: #fff; }
+            .badge, .main-content, .sidebar-actions, .modal { display: none !important; }
+            .sidebar { border: 1px solid #000; background: #fff; position: static; }
+            .check-item { border-color: #ccc; }
+            .status.pass { color: #000; border-color: #000; }
+            .status.fail { color: #fff; background: #000; }
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div>
-            <h1>4TOOLS</h1>
-            <div class="header-sub">DEVELOPED BY 4VOLTS</div>
+        <div class="brand">
+            <div class="logo">4</div>
+            <div>
+                <h1>4TOOLS</h1>
+                <div class="header-sub">Diagnostic Suite · by 4VOLTS</div>
+            </div>
         </div>
         <div class="badge">PRO EDITION</div>
     </header>
@@ -146,147 +213,166 @@
     <div class="container">
         <!-- SIDEBAR -->
         <div class="sidebar">
-            <h3>// QC_LOG</h3>
-            <div class="check-item"><span>01_WiFi</span> <span id="s-wifi" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>02_Battery</span> <span id="s-batt" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>03_Keys</span> <span id="s-kb" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>04_Display</span> <span id="s-lcd" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>05_Touch</span> <span id="s-touch" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>06_Camera</span> <span id="s-cam" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>07_Mic</span> <span id="s-mic" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>08_Speaker</span> <span id="s-spk" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>09_USB</span> <span id="s-usb" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>10_HDMI</span> <span id="s-hdmi" class="status wait">WAITING...</span></div>
-            <br>
-            <button class="primary" onclick="openReportModal()" style="background-color: var(--pass);">GENERATE REPORT</button>
-            <button onclick="window.print()" style="width:100%; background: #444;">PRINT LOG</button>
+            <h3>QC_LOG</h3>
+            <div class="qc-progress"><span>COMPLETED</span><span id="qc-count">0 / 17</span></div>
+            <div class="qc-bar"><div id="qc-bar"></div></div>
+            <div id="qc-list"></div>
+            <div class="sidebar-actions">
+                <button class="primary" onclick="openReportModal()">GENERATE REPORT</button>
+                <button onclick="window.print()">PRINT LOG</button>
+            </div>
         </div>
 
-        <!-- MAIN TOOLS GRID (3 COLUMNS) -->
+        <!-- MAIN TOOLS GRID -->
         <div class="main-content">
 
-            <!-- 1. BATTERY -->
-            <div class="tool-card batt-card">
+            <!-- SYSTEM SPECS -->
+            <div class="tool-card spec-card">
                 <div>
-                    <h3>BATTERY.status()</h3>
+                    <div class="card-head"><h3>SYSTEM.info()</h3><span class="spec-auto">AUTO-DETECTED</span></div>
+                    <p>Read by the browser when the page opens. Included in the report.</p>
+                    <div class="spec-grid" id="spec-grid"><div class="spec"><span class="spec-k">Status</span><span class="spec-v">Detecting...</span></div></div>
+                    <div class="hint">Browsers can't read CPU model, exact RAM above 8 GB, storage or battery health — use Full Specs below.</div>
+
+                    <div class="full-specs">
+                        <div class="fs-title">FULL SPECS <span>Windows · battery health, CPU, RAM, storage, LCD panel</span></div>
+                        <div class="fs-steps">
+                            <div class="fs-step"><span class="fs-n">1</span><button class="primary" onclick="copyPsCommand()">COPY COMMAND</button></div>
+                            <div class="fs-step"><span class="fs-n">2</span><div class="fs-text">Press <b>Win + X</b> → <b>Terminal (Admin)</b> / <b>PowerShell (Admin)</b>. Press <b>Ctrl + V</b> (choose <b>Paste anyway</b> if asked), then <b>Enter</b>.</div></div>
+                            <div class="fs-step"><span class="fs-n">3</span><button onclick="pasteFullSpecs()">PASTE RESULT</button></div>
+                        </div>
+                        <textarea id="fsInput" rows="2" placeholder="…or paste the result here (Ctrl+V)" oninput="parseFullSpecs(this.value)"></textarea>
+                        <div id="fs-msg" class="hint"></div>
+                        <div class="spec-grid" id="fs-grid" style="display:none; margin-top:10px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BATTERY -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">02</span><h3>BATTERY.status()</h3></div>
                     <p>Charging circuit check.</p>
                     <div class="batt-info" id="battLevel">--%</div>
                     <div class="batt-icon" id="battState">DETECTING...</div>
+                    <div class="batt-icon" id="battHealth" style="color:var(--text); margin-top:6px;"></div>
                 </div>
-                <div id="batt-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('batt', true)">OK</button>
-                        <button class="danger" onclick="updateStatus('batt', false)">FAIL</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. TOUCH / DRAW -->
-            <div class="tool-card">
-                <div>
-                    <h3>INPUT.touch()</h3>
-                    <p>Digitizer & trackpad test.</p>
-                    <button class="primary" onclick="openTouchModal()">OPEN CANVAS</button>
-                </div>
-                <div id="touch-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('touch', true)">OK</button>
-                        <button class="danger" onclick="updateStatus('touch', false)">FAIL</button>
-                    </div>
+                <div class="verify" id="batt-verify">
+                    <button class="success" onclick="updateStatus('batt', true)">OK</button>
+                    <button class="danger" onclick="updateStatus('batt', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 3. KEYBOARD -->
+            <!-- KEYBOARD -->
             <div class="tool-card">
                 <div>
-                    <h3>KEYBOARD.test()</h3>
-                    <p>Key matrix integrity.</p>
+                    <div class="card-head"><span class="num">03</span><h3>KEYBOARD.test()</h3></div>
+                    <p>15.6" layout + numpad.</p>
                     <button class="primary" onclick="openKeyboardModal()">LAUNCH TEST</button>
                 </div>
-                <div id="kb-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('kb', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('kb', false)">FAIL</button>
-                    </div>
+                <div class="verify" id="kb-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('kb', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('kb', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 4. SCREEN -->
+            <!-- SCREEN -->
             <div class="tool-card">
                 <div>
-                    <h3>DISPLAY.test()</h3>
-                    <p>Pixels & Refresh rate.</p>
-                    <button class="primary" onclick="startColorTest()">COLOR SEQ</button>
-                    <button class="primary" onclick="startHzTest()">MOTION HZ</button>
-                </div>
-                <div id="lcd-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('lcd', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('lcd', false)">FAIL</button>
+                    <div class="card-head"><span class="num">04</span><h3>DISPLAY.test()</h3></div>
+                    <p>Pixels &amp; refresh rate.</p>
+                    <div class="btn-stack">
+                        <button class="primary" onclick="startColorTest()">COLOR SEQ</button>
+                        <button onclick="startHzTest()">MOTION HZ</button>
                     </div>
                 </div>
-            </div>
-
-            <!-- 5. PHYSICAL PORTS -->
-            <div class="tool-card io-card">
-                <div>
-                    <h3>PORTS.io()</h3>
-                    <p>Manual I/O verification.</p>
-                    <div class="io-row">
-                        <span>USB:</span>
-                        <div class="io-btns"><button class="success" onclick="updateStatus('usb', true)">OK</button><button class="danger" onclick="updateStatus('usb', false)">NO</button></div>
-                    </div>
-                    <div class="io-row">
-                        <span>HDMI:</span>
-                        <div class="io-btns"><button class="success" onclick="updateStatus('hdmi', true)">OK</button><button class="danger" onclick="updateStatus('hdmi', false)">NO</button></div>
-                    </div>
+                <div class="verify" id="lcd-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('lcd', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('lcd', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 6. CAMERA -->
+            <!-- TOUCHSCREEN -->
             <div class="tool-card">
                 <div>
-                    <h3>CAMERA.init()</h3>
+                    <div class="card-head"><span class="num">05</span><h3>TOUCH.screen()</h3></div>
+                    <p>Touchscreen / pen draw test.</p>
+                    <button class="primary" onclick="openTouchModal()">OPEN CANVAS</button>
+                </div>
+                <div class="verify" id="touch-verify">
+                    <button class="success" onclick="updateStatus('touch', true)">OK</button>
+                    <button class="danger" onclick="updateStatus('touch', false)">FAIL</button>
+                    <button class="na-btn" onclick="updateStatus('touch', 'na')">N/A</button>
+                </div>
+            </div>
+
+            <!-- TOUCHPAD -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">06</span><h3>TOUCHPAD.test()</h3></div>
+                    <p>Move, clicks, double click &amp; scroll.</p>
+                    <button class="primary" onclick="openTouchpadModal()">LAUNCH TEST</button>
+                </div>
+                <div class="verify" id="tpad-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('tpad', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('tpad', false)">FAIL</button>
+                </div>
+            </div>
+
+            <!-- CAMERA -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">07</span><h3>CAMERA.init()</h3></div>
                     <p>Visual sensor check.</p>
                     <select id="camSelect" onchange="startCam(this.value)"></select>
-                    <video id="camFeed" autoplay playsinline style="width:100%; display:none; border-radius:2px; background:black; border:1px solid #444; margin-bottom:5px; height:80px; object-fit:cover;"></video>
+                    <video id="camFeed" autoplay playsinline style="width:100%; display:none; border-radius:6px; background:black; border:1px solid var(--line); margin-bottom:8px; height:90px; object-fit:cover;"></video>
                     <button class="primary" onclick="startCam()">START CAM</button>
                 </div>
-                <div id="cam-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('cam', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('cam', false)">FAIL</button>
-                    </div>
+                <div class="verify" id="cam-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('cam', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('cam', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 7. AUDIO IO -->
+            <!-- MIC -->
             <div class="tool-card">
                 <div>
-                    <h3>AUDIO.io()</h3>
-                    <p>Mic In & Speaker Out.</p>
-                    
-                    <!-- MIC -->
-                    <div style="background:#222; height:4px; margin:5px 0; border:1px solid #444;">
-                        <div id="micBar" class="audio-playing-indicator" style="width:0%;"></div>
-                    </div>
+                    <div class="card-head"><span class="num">08</span><h3>MIC.input()</h3></div>
+                    <p>Speak or tap near the mic.</p>
+                    <div class="meter"><div id="micBar" class="audio-playing-indicator"></div></div>
                     <button class="primary" onclick="startMic()">TEST MIC</button>
-
-                    <!-- SPK -->
-                    <button id="btn-spk" class="primary" onclick="toggleSpeakerTest()" style="margin-top:5px;">▶ MUSIC (30s)</button>
-                    <div id="spk-indicator" class="audio-playing-indicator"></div>
-                    <div id="spk-status" style="font-size:9px; color:#666; margin-top:2px;">*Need Internet</div>
                 </div>
-                
-                <div style="margin-top:10px; border-top:1px solid #444; padding-top:10px; font-size:10px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span>MIC:</span>
-                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('mic', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('mic', false)" style="padding:2px 5px;">NO</button></div>
+                <div class="verify">
+                    <button class="success" onclick="updateStatus('mic', true)">OK</button>
+                    <button class="danger" onclick="updateStatus('mic', false)">FAIL</button>
+                </div>
+            </div>
+
+            <!-- SPEAKERS -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">09</span><h3>SPEAKER.stereo()</h3></div>
+                    <p>Left / right channel check. Works offline.</p>
+                    <div class="lr-btns">
+                        <button class="primary" onclick="playTone('L')">◀ LEFT</button>
+                        <button onclick="playTone('B')">BOTH</button>
+                        <button class="primary" onclick="playTone('R')">RIGHT ▶</button>
                     </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>SPK:</span>
-                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('spk', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('spk', false)" style="padding:2px 5px;">NO</button></div>
-                    </div>
+                    <div id="tone-status" class="hint">Tap LEFT, then RIGHT — sound should only come from that side.</div>
+                    <button id="btn-spk" onclick="toggleSpeakerTest()" style="margin-top:10px;">▶ PLAY MUSIC (30s)</button>
+                    <div id="spk-indicator" class="audio-playing-indicator"></div>
+                    <div id="spk-status" class="hint">*Music needs Internet</div>
+                </div>
+                <div class="qc-rows" data-items="spkL,spkR"></div>
+            </div>
+
+            <!-- PHYSICAL PORTS -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">11</span><h3>PORTS.io()</h3></div>
+                    <p>Plug a device into each port. N/A if the model doesn't have it.</p>
+                    <div class="qc-rows" data-items="jack,usb1,usb2,usb3,usb4,usbc,hdmi"></div>
+                    <div class="hint">Audio jack: plug in headphones and use ◀ LEFT / RIGHT ▶ above.</div>
                 </div>
             </div>
 
@@ -297,29 +383,133 @@
     <div id="reportModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="document.getElementById('reportModal').style.display='none'">&times;</span>
-            <h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">GENERATED_REPORT</h2>
-            
+            <h2>GENERATED_REPORT</h2>
             <div class="report-inputs">
                 <input type="text" id="modalTech" placeholder="Technician Name" value="">
                 <input type="text" id="modalComp" placeholder="Shop / Company Name" value="">
-                <button class="primary" onclick="generateReport()" style="width:auto;">🔄 REFRESH</button>
+                <button onclick="generateReport()">↻ REFRESH</button>
             </div>
-
-            <textarea id="finalReportArea" style="width:100%;height:300px;font-family:'Roboto Mono',monospace;background:#111;color:#ddd;border:none;padding:15px;"></textarea>
-            
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="success" onclick="copyReport()" style="flex:1;">COPY TEXT</button>
-                <button class="wa-btn" onclick="shareToWhatsapp()" style="flex:1;">SEND TO WHATSAPP 📱</button>
+            <textarea id="finalReportArea"></textarea>
+            <div class="report-actions">
+                <button class="primary" onclick="copyReport()">COPY TEXT</button>
+                <button onclick="shareToWhatsapp()">SEND TO WHATSAPP</button>
             </div>
         </div>
     </div>
 
-    <!-- OTHER MODALS -->
-    <div id="kbModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeKeyboardModal()">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">KEYBOARD_TEST</h2><div class="keyboard-wrapper" id="keyboard-layout"></div></div></div>
-    <div id="touchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">TOUCH_TEST</h2><canvas id="touchCanvas" width="800" height="400"></canvas><br><button class="primary" onclick="clearCanvas()">CLEAR</button></div></div>
-    <div id="screenOverlay"><div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#888; font-size:20px; pointer-events:none; font-family:'Roboto Mono';">CLICK_TO_CYCLE_COLOR<br>ESC_TO_EXIT</div></div>
-    <div id="hz-tester"><div class="moving-bar" id="hz-bar"></div><div class="hz-info"><span style="color:#aaa; font-size:12px;">// REFRESH RATE MONITOR</span><br>FPS: <span id="frame-count" style="color:var(--arduino-teal); font-size:40px;">CALC...</span><br><div style="margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-left:3px solid var(--arduino-teal);">RES: <span id="res-disp" style="color:white;font-size:18px;">DETECT...</span></div></div></div>
+    <!-- KEYBOARD MODAL -->
+    <div id="kbModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeKeyboardModal()">&times;</span>
+            <h2>KEYBOARD_TEST</h2>
+            <div class="kb-toolbar">
+                <div>
+                    TESTED <span id="kb-count" class="kb-count">0 / 0</span> <span id="kb-na-count"></span><br>
+                    LAST KEY: <span id="kb-last" class="kb-last">—</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="resetKeyboardTest()">RESET</button>
+                    <button class="success" onclick="updateStatus('kb', true); closeKeyboardModal()">PASS</button>
+                    <button class="danger" onclick="updateStatus('kb', false); closeKeyboardModal()">FAIL</button>
+                </div>
+            </div>
+            <div class="kb-scroll"><div class="keyboard-wrapper" id="keyboard-layout"></div></div>
+            <div class="kb-legend"><span class="lg-untested">Untested</span><span class="lg-tested">Tested</span><span class="lg-na">N/A</span></div>
+            <div class="kb-hint">
+                Press every key. Click a key to mark it N/A (not on this model) — click again to undo.<br>
+                Fn can't be seen by browsers: check it with Fn+F-key combos. F-keys changing volume/brightness? Hold Fn.<br>
+                Esc is tested like any key — close with &times; or PASS / FAIL.
+            </div>
+        </div>
+    </div>
 
+    <!-- TOUCHPAD MODAL -->
+    <div id="tpadModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeTouchpadModal()">&times;</span>
+            <h2>TOUCHPAD_TEST</h2>
+            <div class="kb-toolbar">
+                <div>DETECTED <span id="tp-count" class="kb-count">0 / 6</span></div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="resetTouchpadTest()">RESET</button>
+                    <button class="success" onclick="updateStatus('tpad', true); closeTouchpadModal()">PASS</button>
+                    <button class="danger" onclick="updateStatus('tpad', false); closeTouchpadModal()">FAIL</button>
+                </div>
+            </div>
+            <div class="tp-checks" id="tp-checks"></div>
+            <div id="tpArea" class="tp-area">
+                <div class="tp-dot" id="tpDot"></div>
+                <div class="tp-msg">USE THE TOUCHPAD INSIDE THIS BOX<br><span>move · click · right-click · double-click · two-finger scroll up/down and left/right</span></div>
+            </div>
+            <div class="kb-hint">Test the physical buttons too (if the touchpad has them). Tap-to-click counts as a click.</div>
+        </div>
+    </div>
+
+    <!-- TOUCH MODAL -->
+    <div id="touchModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span>
+            <h2>TOUCH_TEST</h2>
+            <canvas id="touchCanvas" width="800" height="400"></canvas>
+            <button onclick="clearCanvas()">CLEAR</button>
+        </div>
+    </div>
+
+    <!-- SCREEN OVERLAYS -->
+    <div id="screenOverlay"><div class="overlay-hint">CLICK TO CYCLE COLOR<br>ESC TO EXIT</div></div>
+    <div id="hz-tester">
+        <div class="moving-bar" id="hz-bar"></div>
+        <div class="hz-info">
+            // REFRESH RATE MONITOR
+            <span id="frame-count">CALC...</span>
+            RES: <span id="res-disp">DETECT...</span>
+        </div>
+    </div>
+
+    <!-- PowerShell command copied by "COPY COMMAND". It only reads info and copies it to the clipboard. -->
+    <script type="text/plain" id="ps-script">
+& {
+$o = [System.Collections.Generic.List[string]]::new(); $o.Add('4TOOLS-SPECS v1')
+function A($k, $v) { $v = "$v".Trim(); if ($v) { $o.Add("$k=$v") } }
+$cs = Get-CimInstance Win32_ComputerSystem
+$pr = Get-CimInstance Win32_ComputerSystemProduct
+A Maker $cs.Manufacturer
+A Model $(if ($cs.Manufacturer -match 'LENOVO' -and $pr.Version) { $pr.Version } else { $cs.Model })
+$bios = Get-CimInstance Win32_BIOS
+A Serial $bios.SerialNumber
+A BIOS "$($bios.Manufacturer)|$($bios.SMBIOSBIOSVersion)|$(if ($bios.ReleaseDate) { $bios.ReleaseDate.ToString('yyyy-MM-dd') })"
+$me = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+A Admin $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$os = Get-CimInstance Win32_OperatingSystem
+A OS "$($os.Caption) (build $($os.BuildNumber))"
+foreach ($c in @(Get-CimInstance Win32_Processor)) { A CPU "$($c.Name)|$($c.NumberOfCores)|$($c.NumberOfLogicalProcessors)" }
+foreach ($m in @(Get-CimInstance Win32_PhysicalMemory)) { A RAM "$([math]::Round($m.Capacity / 1GB))|$($m.SMBIOSMemoryType)|$($m.ConfiguredClockSpeed)|$($m.Manufacturer)|$($m.PartNumber)|$($m.DeviceLocator)" }
+A RAMSlots (Get-CimInstance Win32_PhysicalMemoryArray | Measure-Object MemoryDevices -Sum).Sum
+$md = Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-MemoryDiagnostics-Results' } -MaxEvents 1 -ErrorAction SilentlyContinue
+if ($md) { A MemTest "$($md.Id)|$($md.TimeCreated.ToString('yyyy-MM-dd'))" } else { A MemTest 'none' }
+foreach ($d in @(Get-PhysicalDisk)) {
+  $r = $null; try { $r = $d | Get-StorageReliabilityCounter -ErrorAction Stop } catch {}
+  A Disk "$($d.FriendlyName)|$($d.MediaType)|$($d.BusType)|$([math]::Round($d.Size / 1e9))|$($d.HealthStatus)|$($r.Wear)|$($r.Temperature)|$($r.PowerOnHours)|$($r.ReadErrorsUncorrected)"
+}
+foreach ($g in @(Get-CimInstance Win32_VideoController)) { A GPU $g.Name }
+try {
+  $f = Join-Path $env:TEMP '4tools-battery.xml'
+  powercfg /batteryreport /xml /output $f | Out-Null
+  [xml]$x = Get-Content $f
+  foreach ($b in @($x.BatteryReport.Batteries.Battery)) { if ($b) { A Battery "$($b.Manufacturer)|$($b.Id)|$($b.Chemistry)|$($b.DesignCapacity)|$($b.FullChargeCapacity)|$($b.CycleCount)" } }
+  Remove-Item $f -ErrorAction SilentlyContinue
+} catch {}
+$conn = @{}
+foreach ($c in @(Get-CimInstance -Namespace root\wmi WmiMonitorConnectionParams -ErrorAction SilentlyContinue)) { $conn[$c.InstanceName] = $c.VideoOutputTechnology }
+foreach ($mon in @(Get-CimInstance -Namespace root\wmi WmiMonitorID -ErrorAction SilentlyContinue)) {
+  $key = 'HKLM:\SYSTEM\CurrentControlSet\Enum\' + ($mon.InstanceName -replace '_\d+$', '') + '\Device Parameters'
+  $edid = (Get-ItemProperty $key -ErrorAction SilentlyContinue).EDID
+  if ($edid) { A EDID "$($conn[$mon.InstanceName])|$(($edid | ForEach-Object { $_.ToString('x2') }) -join '')" }
+}
+Set-Clipboard ($o -join "`n")
+Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n" -ForegroundColor Green
+}
+    </script>
     <script>
         const apiKey = ""; 
         
@@ -337,24 +527,357 @@
             generateReport(); // Auto generate
         }
 
-        // --- REPORT GENERATION (MANUAL ONLY) ---
-        function generateReport() {
-            const textArea = document.getElementById('finalReportArea');
-            const id = getGlobalIdentity();
-            const getStatus = (elId) => document.getElementById('s-'+elId).innerText;
-            const data = {
-                wifi: getStatus('wifi'), batt: getStatus('batt'), kb: getStatus('kb'),
-                touch: getStatus('touch'), lcd: getStatus('lcd'), cam: getStatus('cam'),
-                mic: getStatus('mic'), spk: getStatus('spk'), usb: getStatus('usb'), hdmi: getStatus('hdmi'),
-                tech: id.tech, comp: id.comp
+        // --- QC ITEMS: single list that drives the sidebar, port rows and the report ---
+        // [id, sidebar label, report label]
+        const QC_ITEMS = [
+            ['wifi', 'WiFi', 'Network (WiFi)'],
+            ['batt', 'Battery', 'Power (Battery)'],
+            ['kb', 'Keyboard', 'Keyboard'],
+            ['lcd', 'Display', 'Screen / Display'],
+            ['touch', 'Touchscreen', 'Touchscreen'],
+            ['tpad', 'Touchpad', 'Touchpad'],
+            ['cam', 'Camera', 'Webcam'],
+            ['mic', 'Mic', 'Microphone'],
+            ['spkL', 'Speaker L', 'Speaker (Left)'],
+            ['spkR', 'Speaker R', 'Speaker (Right)'],
+            ['jack', 'Audio Jack', 'Audio Jack (3.5mm)'],
+            ['usb1', 'USB 1', 'USB Port 1'],
+            ['usb2', 'USB 2', 'USB Port 2'],
+            ['usb3', 'USB 3', 'USB Port 3'],
+            ['usb4', 'USB 4', 'USB Port 4'],
+            ['usbc', 'USB-C', 'USB-C Port'],
+            ['hdmi', 'HDMI', 'HDMI / External'],
+        ];
+        const qcLabel = id => QC_ITEMS.find(x => x[0] === id)[1];
+
+        function buildQcList() {
+            const list = document.getElementById('qc-list');
+            QC_ITEMS.forEach(([id, label], i) => {
+                const row = document.createElement('div');
+                row.className = 'check-item';
+                row.innerHTML = `<span><span class="idx">${String(i + 1).padStart(2, '0')}</span>${label}</span> <span id="s-${id}" class="status wait">WAITING...</span>`;
+                list.appendChild(row);
+            });
+            // Rows of OK / NO / N/A buttons for speakers and ports
+            document.querySelectorAll('.qc-rows').forEach(box => {
+                box.dataset.items.split(',').forEach(id => {
+                    const row = document.createElement('div');
+                    row.className = 'io-row';
+                    row.innerHTML = `<span>${qcLabel(id)}</span><div class="io-btns">
+                        <button class="success" onclick="updateStatus('${id}', true)">OK</button>
+                        <button class="danger" onclick="updateStatus('${id}', false)">NO</button>
+                        <button class="na-btn" onclick="updateStatus('${id}', 'na')">N/A</button></div>`;
+                    box.appendChild(row);
+                });
+            });
+            updateQcProgress();
+        }
+        buildQcList();
+
+        // --- SYSTEM SPECS (read automatically from the browser) ---
+        // Browsers hide CPU model, real RAM size, storage and battery health,
+        // so only what the browser exposes is shown.
+        let specs = [];
+
+        async function detectSpecs() {
+            const nav = navigator, ua = nav.userAgent;
+            let hi = {};
+            try { if (nav.userAgentData) hi = await nav.userAgentData.getHighEntropyValues(['platform', 'platformVersion', 'architecture', 'bitness', 'fullVersionList']); } catch (e) {}
+
+            // OS
+            let os = 'Unknown';
+            if (hi.platform === 'Windows') os = parseInt(hi.platformVersion) >= 13 ? 'Windows 11' : 'Windows 10';
+            else if (hi.platform === 'macOS') os = 'macOS ' + (hi.platformVersion || '').split('.').slice(0, 2).join('.');
+            else if (hi.platform) os = hi.platform + (hi.platformVersion ? ' ' + hi.platformVersion : '');
+            else if (/Windows NT 10/.test(ua)) os = 'Windows 10/11';
+            else if (/Mac OS X ([\d_]+)/.test(ua)) os = 'macOS ' + RegExp.$1.replace(/_/g, '.');
+            else if (/CrOS/.test(ua)) os = 'ChromeOS';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            let bits = '';
+            if (hi.architecture === 'arm') bits = hi.bitness === '64' ? 'ARM 64-bit' : 'ARM';
+            else if (hi.bitness) bits = hi.bitness + '-bit';
+            else if (/Win64|x86_64|x64/.test(ua)) bits = '64-bit';
+            if (bits) os += ` (${bits})`;
+
+            // Browser
+            let browser = 'Unknown';
+            const brands = (hi.fullVersionList || []).filter(b => !/Not.?A.?Brand|Chromium/i.test(b.brand));
+            if (brands.length) browser = brands[brands.length - 1].brand.replace('Google ', '') + ' ' + brands[brands.length - 1].version.split('.')[0];
+            else if (/Firefox\/(\d+)/.test(ua)) browser = 'Firefox ' + RegExp.$1;
+            else if (/Version\/(\d+).*Safari/.test(ua)) browser = 'Safari ' + RegExp.$1;
+
+            // CPU threads
+            const cpu = nav.hardwareConcurrency ? `${nav.hardwareConcurrency} threads` : 'Not available';
+
+            // RAM (browsers report at most 8 GB)
+            const mem = nav.deviceMemory;
+            const ram = !mem ? 'Not available (this browser)' : mem >= 8 ? '8 GB or more' : `About ${mem} GB`;
+
+            // GPU
+            let gpu = 'Not available';
+            try {
+                const gl = document.createElement('canvas').getContext('webgl');
+                const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+                let r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl && gl.getParameter(gl.RENDERER);
+                if (r) {
+                    const m = r.match(/^ANGLE \((.*)\)$/);
+                    if (m) r = m[1].split(', ')[1] || m[1];
+                    // "Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0" -> "Intel UHD Graphics 620"
+                    gpu = r.replace(/^ANGLE Metal Renderer:\s*/i, '').replace(/\s*\(0x[0-9a-f]+\)/ig, '')
+                           .replace(/\s+(Direct3D|vs_\d|OpenGL|Vulkan).*$/i, '').replace(/\((R|TM)\)/g, '').trim() || r;
+                }
+            } catch (e) {}
+
+            // Screen
+            const dpr = window.devicePixelRatio || 1;
+            const screenRes = `${Math.round(screen.width * dpr)} x ${Math.round(screen.height * dpr)} (scale ${Math.round(dpr * 100)}%)`;
+            const hz = await measureRefreshRate();
+            const touch = nav.maxTouchPoints > 0 ? `Yes (${nav.maxTouchPoints} points)` : 'No';
+
+            specs = [['OS', os], ['Browser', browser], ['CPU', cpu], ['RAM', ram], ['GPU', gpu],
+                     ['Screen', screenRes], ['Refresh rate', hz], ['Touchscreen', touch]];
+            renderSpecs();
+        }
+
+        // Count animation frames for ~1s and snap to a common refresh rate
+        function measureRefreshRate() {
+            return new Promise(resolve => {
+                let n = 0, start = null;
+                const step = t => {
+                    if (start === null) start = t;
+                    n++;
+                    if (t - start < 1000) return requestAnimationFrame(step);
+                    const fps = (n - 1) * 1000 / (t - start);
+                    const common = [30, 48, 50, 60, 75, 90, 100, 120, 144, 165, 180, 240, 360];
+                    const snap = common.reduce((a, b) => Math.abs(b - fps) < Math.abs(a - fps) ? b : a);
+                    resolve(document.hidden ? 'Not measured' : `${snap} Hz`);
+                };
+                requestAnimationFrame(step);
+            });
+        }
+
+        function renderSpecs() {
+            const box = document.getElementById('spec-grid');
+            box.innerHTML = '';
+            specs.forEach(([k, v]) => {
+                const d = document.createElement('div');
+                d.className = 'spec';
+                d.innerHTML = `<span class="spec-k"></span><span class="spec-v"></span>`;
+                d.querySelector('.spec-k').textContent = k;
+                d.querySelector('.spec-v').textContent = v;
+                box.appendChild(d);
+            });
+        }
+
+        function specsReportBlock() {
+            const rows = fullSpecs.length ? fullSpecs : specs;
+            if (!rows.length) return '';
+            const title = fullSpecs.length ? 'SYSTEM SPECS:' : 'SYSTEM SPECS (auto-detected by browser):';
+            return title + '\n\n' + rows.map(([k, v]) => `${k}:`.padEnd(16) + v).join('\n') + '\n\n----------------------------------------\n';
+        }
+
+        // --- FULL SPECS (Windows PowerShell result pasted back in) ---
+        let fullSpecs = [], panelPart = '';
+        const PANEL_MAKERS = { AUO: 'AU Optronics', BOE: 'BOE', CMN: 'Innolux', INX: 'Innolux', LGD: 'LG Display', SDC: 'Samsung', SHP: 'Sharp', IVO: 'InfoVision', CSO: 'CSOT', CSW: 'CSOT', TMA: 'Tianma', KDB: 'Kyocera', LEN: 'Lenovo', APP: 'Apple' };
+        const RAM_TYPES = { 20: 'DDR', 21: 'DDR2', 24: 'DDR3', 26: 'DDR4', 29: 'LPDDR3', 30: 'LPDDR4', 34: 'DDR5', 35: 'LPDDR5' };
+        const LAPTOP_SIZES = [11.6, 12.5, 13.3, 13.5, 14, 15.6, 16, 17.3];
+        // RAM makers often show as JEDEC codes
+        const RAM_MAKERS = { '80CE': 'Samsung', '80AD': 'SK Hynix', '802C': 'Micron', '859B': 'Crucial', '0198': 'Kingston', '04CB': 'ADATA', '029E': 'Corsair', '04CD': 'G.Skill', '8551': 'Qimonda', '0443': 'Ramaxel', '80CE0000': 'Samsung', '80AD0000': 'SK Hynix', '802C0000': 'Micron' };
+        const healthGrade = pct => pct >= 80 ? 'Good' : pct >= 50 ? 'Worn' : 'Replace soon';
+
+        function copyPsCommand() {
+            const cmd = document.getElementById('ps-script').textContent.trim();
+            const done = () => { document.getElementById('fs-msg').textContent = 'Command copied. Now paste it in PowerShell and press Enter.'; };
+            const fallback = () => {
+                const t = document.createElement('textarea'); t.value = cmd; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); t.remove(); done();
             };
-            textArea.value = generateManualReport(data);
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd).then(done, fallback);
+            else fallback();
+        }
+
+        async function pasteFullSpecs() {
+            const box = document.getElementById('fsInput');
+            try {
+                box.value = await navigator.clipboard.readText();
+                parseFullSpecs(box.value);
+            } catch (e) {
+                box.focus();
+                document.getElementById('fs-msg').textContent = 'Press Ctrl+V in the box below.';
+            }
+        }
+
+        // EDID (raw panel info) -> maker, part number, resolution, refresh, size, colour depth
+        function parseEdid(hex) {
+            const b = (hex.match(/../g) || []).map(h => parseInt(h, 16));
+            if (b.length < 128 || b[0] !== 0 || b[1] !== 0xff) return null;
+            const id = (b[8] << 8) | b[9];
+            const maker = String.fromCharCode(((id >> 10) & 31) + 64, ((id >> 5) & 31) + 64, (id & 31) + 64);
+            const d = 54; // first detailed timing = native mode
+            const pclk = (b[d] | (b[d + 1] << 8)) * 10000;
+            const w = b[d + 2] | ((b[d + 4] & 0xf0) << 4), hBlank = b[d + 3] | ((b[d + 4] & 0x0f) << 8);
+            const h = b[d + 5] | ((b[d + 7] & 0xf0) << 4), vBlank = b[d + 6] | ((b[d + 7] & 0x0f) << 8);
+            let wmm = b[d + 12] | ((b[d + 14] & 0xf0) << 4), hmm = b[d + 13] | ((b[d + 14] & 0x0f) << 8);
+            if (!wmm || !hmm) { wmm = b[21] * 10; hmm = b[22] * 10; }
+            const hz = pclk ? Math.round(pclk / ((w + hBlank) * (h + vBlank))) : 0;
+            let inch = Math.sqrt(wmm * wmm + hmm * hmm) / 25.4;
+            const near = LAPTOP_SIZES.find(s => Math.abs(s - inch) <= 0.25);
+            inch = near || Math.round(inch * 10) / 10;
+            // Text descriptors: 0xFC = name, 0xFE = free text (laptop panels put the part number here)
+            const texts = [];
+            for (const o of [54, 72, 90, 108]) {
+                if (b[o] === 0 && b[o + 1] === 0 && (b[o + 3] === 0xfc || b[o + 3] === 0xfe)) {
+                    const t = String.fromCharCode(...b.slice(o + 5, o + 18)).replace(/[\n\r\0].*$/s, '').trim();
+                    if (t) texts.push(t);
+                }
+            }
+            const digital = b[20] & 0x80;
+            const bpc = digital ? ({ 1: 6, 2: 8, 3: 10, 4: 12 })[(b[20] >> 4) & 7] : 0;
+            const isDP = digital && (b[20] & 0x0f) === 5;
+            return { maker, makerName: PANEL_MAKERS[maker] || maker, w, h, hz, inch, bpc, isDP, texts };
+        }
+
+        // eDP pin count isn't stored in the panel, so estimate it from bandwidth
+        function estimatePins(p, iface) {
+            if (iface === 'LVDS') return 'LVDS panel (older type), check the part number';
+            if (p.hz > 60) return 'Likely 40-pin (high refresh rate)';
+            if (p.w * p.h > 1920 * 1200) return 'Likely 40-pin (QHD/4K), some are 30-pin';
+            return 'Likely 30-pin (HD/FHD 60Hz)';
+        }
+
+        const tidy = t => t.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ').trim();
+
+        function parseFullSpecs(text) {
+            const msg = document.getElementById('fs-msg');
+            if (!/^\s*4TOOLS-SPECS/.test(text)) {
+                if (text.trim()) msg.textContent = "That doesn't look like the 4TOOLS result. Run the command again.";
+                return;
+            }
+            const data = {};
+            text.split(/\r?\n/).forEach(line => {
+                const i = line.indexOf('=');
+                if (i > 0) (data[line.slice(0, i)] = data[line.slice(0, i)] || []).push(line.slice(i + 1).trim());
+            });
+            const one = k => (data[k] || [])[0] || '';
+            const rows = [];
+            panelPart = '';
+
+            rows.push(['Laptop', [one('Maker'), one('Model')].filter(Boolean).join(' ') || '—']);
+            if (one('Serial')) rows.push(['Serial no.', one('Serial')]);
+            if (one('BIOS')) {
+                const [maker, ver, date] = one('BIOS').split('|');
+                rows.push(['BIOS', [ver, date && `released ${date}`, maker].filter(Boolean).join(' · ')]);
+            }
+            const isAdmin = /true/i.test(one('Admin'));
+            (data.CPU || []).forEach(c => { const [name, cores, threads] = c.split('|'); rows.push(['CPU', `${tidy(name)} (${cores} cores / ${threads} threads)`]); });
+
+            if (data.RAM) {
+                const sticks = data.RAM.map(r => r.split('|'));
+                const total = sticks.reduce((a, s) => a + (+s[0] || 0), 0);
+                const type = RAM_TYPES[sticks[0][1]] || '';
+                const speed = sticks[0][2] ? `-${sticks[0][2]}` : '';
+                const slots = one('RAMSlots');
+                rows.push(['RAM', `${total} GB ${type}${speed} · ${sticks.map(s => s[0] + 'GB').join(' + ')}` + (slots ? ` · ${sticks.length} of ${slots} slots used` : '')]);
+                const modules = sticks.map(([gb, , , maker = '', part = '', slot = '']) => {
+                    const m = RAM_MAKERS[maker.trim().toUpperCase()] || maker.trim();
+                    return [slot.trim(), `${gb}GB`, m, part.trim()].filter(x => x && !/^(unknown|undefined)$/i.test(x)).join(' ');
+                });
+                rows.push(['RAM modules', modules.join(' · ')]);
+            }
+            // RAM health = last Windows Memory Diagnostic result (1101/1201 = no errors, 1102/1202 = errors)
+            if (one('MemTest')) {
+                const [id, date] = one('MemTest').split('|');
+                let res = 'Not tested yet. Run "mdsched", restart, then run the command again';
+                if (['1101', '1201'].includes(id)) res = `No errors (Windows Memory Diagnostic, ${date})`;
+                else if (['1102', '1202'].includes(id)) res = `ERRORS FOUND (Windows Memory Diagnostic, ${date}). Reseat or replace RAM`;
+                rows.push(['RAM health', res]);
+            }
+
+            (data.Disk || []).forEach(d => {
+                const [name, media, bus, gb, status, wear, temp, hours, readErr] = d.split('|');
+                const kind = [bus, media].filter(x => x && x !== 'Unspecified').join(' ');
+                rows.push(['Storage', `${name} · ${gb} GB` + (kind ? ` · ${kind}` : '')]);
+                // Wear = % of rated life used (SSD). Needs PowerShell as Administrator.
+                const parts = [];
+                if (wear !== undefined && wear !== '' && media !== 'HDD') { const pct = 100 - +wear; parts.push(`${pct}% (${healthGrade(pct)})`); }
+                if (status) parts.push(`Windows: ${status}`);
+                if (+temp) parts.push(`${temp}°C`);
+                if (hours !== undefined && hours !== '') parts.push(`${(+hours).toLocaleString('en-US')} power-on hours`);
+                if (+readErr) parts.push(`${readErr} read errors`);
+                if ((wear === undefined || wear === '') && !isAdmin && media !== 'HDD') parts.push('run as Administrator for wear %');
+                rows.push([media === 'HDD' ? 'HDD health' : 'SSD health', parts.join(' · ') || '—']);
+            });
+            (data.GPU || []).forEach(g => rows.push(['GPU', tidy(g)]));
+            if (one('OS')) rows.push(['OS', one('OS').replace('Microsoft ', '')]);
+
+            // Battery health = full charge capacity / design capacity
+            let battHealth = '';
+            (data.Battery || []).forEach(bt => {
+                const [maker, model, chem, design, full, cycles] = bt.split('|');
+                if (!+design || !+full) return;
+                const pct = Math.round(full / design * 100);
+                const grade = healthGrade(pct);
+                const mwh = n => (+n).toLocaleString('en-US');
+                rows.push(['Battery health', `${pct}% (${grade}) · ${mwh(full)} / ${mwh(design)} mWh` + (cycles ? ` · ${cycles} cycles` : '')]);
+                rows.push(['Battery', [maker, model, chem].filter(Boolean).join(' · ')]);
+                battHealth = battHealth || `HEALTH ${pct}% · ${grade.toUpperCase()}`;
+            });
+            document.getElementById('battHealth').textContent = battHealth;
+
+            // LCD panel: prefer the built-in screen (eDP / LVDS / internal)
+            const panels = (data.EDID || []).map(e => { const [tech, hex] = e.split('|'); return { tech: +tech, p: parseEdid(hex) }; }).filter(x => x.p);
+            const internal = panels.find(x => [11, 6, 2147483648, -2147483648].includes(x.tech)) || panels.find(x => x.p.isDP) || panels[0];
+            if (internal) {
+                const p = internal.p;
+                const iface = internal.tech === 6 ? 'LVDS' : (internal.tech === 11 || p.isDP || internal.tech === 2147483648 || internal.tech === -2147483648) ? 'eDP' : 'External';
+                const part = p.texts.filter(t => t.length >= 6 && /\d/.test(t)).pop() || p.texts.join(' ');
+                rows.push(['LCD panel', `${p.makerName}${part ? ' ' + part : ''}`]);
+                rows.push(['LCD size / res', `${p.inch}" · ${p.w} x ${p.h} @ ${p.hz}Hz` + (p.bpc ? ` · ${p.bpc}-bit` : '')]);
+                rows.push(['LCD connector', `${iface} · ${estimatePins(p, iface)}`]);
+                panelPart = part;
+            }
+
+            fullSpecs = rows;
+            renderFullSpecs();
+            msg.textContent = `Full specs loaded (${rows.length} items). Added to the report.`;
+        }
+
+        function renderFullSpecs() {
+            const box = document.getElementById('fs-grid');
+            box.innerHTML = '';
+            fullSpecs.forEach(([k, v]) => {
+                const d = document.createElement('div');
+                d.className = 'spec';
+                d.innerHTML = `<span class="spec-k"></span><span class="spec-v"></span>`;
+                d.querySelector('.spec-k').textContent = k;
+                d.querySelector('.spec-v').textContent = v;
+                if (k === 'LCD connector' && panelPart) {
+                    const a = document.createElement('a');
+                    a.href = 'https://www.google.com/search?q=' + encodeURIComponent(panelPart + ' pin');
+                    a.target = '_blank'; a.rel = 'noopener'; a.className = 'spec-link';
+                    a.textContent = 'Confirm pins: search ' + panelPart + ' ↗';
+                    d.appendChild(a);
+                }
+                box.appendChild(d);
+            });
+            box.style.display = fullSpecs.length ? 'grid' : 'none';
+        }
+
+        // --- REPORT GENERATION ---
+        function generateReport() {
+            document.getElementById('finalReportArea').value = generateManualReport(getGlobalIdentity());
         }
 
         function generateManualReport(d) {
             const date = new Date().toLocaleDateString('en-GB');
             const time = new Date().toLocaleTimeString('en-GB');
-            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\nHARDWARE TEST RESULTS:\n\n1. Network (WiFi):     [ ${d.wifi} ]\n2. Power (Battery):    [ ${d.batt} ]\n3. Keyboard:           [ ${d.kb} ]\n4. Screen / Display:   [ ${d.lcd} ]\n5. Touch Panel:        [ ${d.touch} ]\n6. Webcam:             [ ${d.cam} ]\n7. Microphone:         [ ${d.mic} ]\n8. Speaker:            [ ${d.spk} ]\n9. USB Port:           [ ${d.usb} ]\n10. HDMI / External:   [ ${d.hdmi} ]\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n\nThank you for choosing ${d.comp}.\n========================================`;
+            const notes = { kb: keyboardReportNote(), tpad: touchpadReportNote() };
+            const lines = QC_ITEMS.map(([id, , label], i) => {
+                const status = document.getElementById('s-' + id).innerText;
+                const line = `${i + 1}. ${label}:`.padEnd(26) + `[ ${status} ]`;
+                return notes[id] ? line + '\n' + notes[id].replace(/\n$/, '') : line;
+            }).join('\n');
+            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\n${specsReportBlock()}HARDWARE TEST RESULTS:\n\n${lines}\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n"N/A" = Not available on this model.\n\nThank you for choosing ${d.comp}.\n========================================`;
         }
 
         function copyReport() { const t = document.getElementById("finalReportArea"); t.select(); document.execCommand("copy"); alert("Copied!"); }
@@ -363,29 +886,138 @@
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         }
 
-        function updateStatus(id, isPass) {
+        // result: true = pass, false = fail, 'na' = not on this model
+        function updateStatus(id, result) {
             const el = document.getElementById('s-' + id);
-            if (isPass) { el.innerText = "PASS_OK"; el.className = "status pass"; } 
+            if (result === 'na') { el.innerText = "N/A"; el.className = "status na"; }
+            else if (result) { el.innerText = "PASS_OK"; el.className = "status pass"; }
             else { el.innerText = "FAIL_ERR"; el.className = "status fail"; }
+            updateQcProgress();
         }
 
-        // --- INPUT FIX (PREVENT KEYBOARD TESTER FROM BLOCKING TYPING) ---
-        document.addEventListener('keydown', (e) => { 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
-            e.preventDefault(); handleKey(e, true); 
+        function updateQcProgress() {
+            const all = document.querySelectorAll('#qc-list .status');
+            const done = [...all].filter(el => !el.classList.contains('wait')).length;
+            document.getElementById('qc-count').textContent = `${done} / ${all.length}`;
+            document.getElementById('qc-bar').style.width = (done / all.length * 100) + '%';
+        }
+
+        // --- TOUCHPAD TEST ---
+        const TP_CHECKS = [['move', 'Move'], ['left', 'Left click'], ['right', 'Right click'], ['double', 'Double click'], ['scrollV', 'Scroll ↕'], ['scrollH', 'Scroll ↔']];
+        let tpDone = {}, tpMoved = 0, tpScrollV = 0, tpScrollH = 0;
+
+        function initTouchpad() {
+            const box = document.getElementById('tp-checks');
+            TP_CHECKS.forEach(([k, label]) => {
+                const c = document.createElement('div');
+                c.className = 'tp-chip'; c.id = 'tp-' + k; c.textContent = label;
+                box.appendChild(c);
+            });
+            const a = document.getElementById('tpArea'), dot = document.getElementById('tpDot');
+            a.addEventListener('mousemove', e => {
+                const r = a.getBoundingClientRect();
+                dot.style.transform = `translate(${e.clientX - r.left}px, ${e.clientY - r.top}px)`;
+                tpMoved += Math.abs(e.movementX) + Math.abs(e.movementY);
+                if (tpMoved > 400) tpMark('move');
+            });
+            a.addEventListener('mousedown', e => {
+                if (e.button === 0) tpMark('left');
+                if (e.button === 2) tpMark('right');
+                a.classList.add('pressed');
+            });
+            a.addEventListener('mouseup', () => a.classList.remove('pressed'));
+            a.addEventListener('mouseleave', () => a.classList.remove('pressed'));
+            a.addEventListener('contextmenu', e => { e.preventDefault(); tpMark('right'); });
+            a.addEventListener('dblclick', () => tpMark('double'));
+            a.addEventListener('wheel', e => {
+                e.preventDefault(); // keep the page still (and block pinch-zoom) while testing
+                if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) tpScrollV += Math.abs(e.deltaY);
+                else tpScrollH += Math.abs(e.deltaX);
+                if (tpScrollV > 80) tpMark('scrollV');
+                if (tpScrollH > 80) tpMark('scrollH');
+            }, { passive: false });
+            resetTouchpadTest();
+        }
+
+        function tpMark(k) {
+            if (tpDone[k]) return;
+            tpDone[k] = true;
+            document.getElementById('tp-' + k).classList.add('done');
+            const n = Object.keys(tpDone).length;
+            document.getElementById('tp-count').textContent = `${n} / ${TP_CHECKS.length}`;
+            // Everything detected -> auto PASS, unless the technician already set a result
+            if (n === TP_CHECKS.length && document.getElementById('s-tpad').classList.contains('wait')) updateStatus('tpad', true);
+        }
+
+        function resetTouchpadTest() {
+            tpDone = {}; tpMoved = tpScrollV = tpScrollH = 0;
+            document.querySelectorAll('.tp-chip').forEach(c => c.classList.remove('done'));
+            document.getElementById('tp-count').textContent = `0 / ${TP_CHECKS.length}`;
+            const s = document.getElementById('s-tpad'); s.innerText = 'WAITING...'; s.className = 'status wait';
+            updateQcProgress();
+        }
+
+        function touchpadReportNote() {
+            const missing = TP_CHECKS.filter(([k]) => !tpDone[k]).map(([, l]) => l);
+            if (!Object.keys(tpDone).length || !missing.length) return '';
+            return `   Not detected: ${missing.join(', ')}`;
+        }
+
+        function openTouchpadModal() {
+            document.getElementById('tpadModal').style.display = 'block';
+            document.getElementById('tpad-verify').style.display = 'flex';
+        }
+        function closeTouchpadModal() { document.getElementById('tpadModal').style.display = 'none'; }
+
+        // --- STEREO TONE (offline left / right speaker check) ---
+        let toneCtx = null;
+        function playTone(side) {
+            toneCtx = toneCtx || new (window.AudioContext || window.webkitAudioContext)();
+            if (toneCtx.state === 'suspended') toneCtx.resume();
+            const t0 = toneCtx.currentTime + 0.05;
+            const out = toneCtx.createGain(); out.gain.value = 0.4;
+            // Route to one channel only, so a dead side is silent
+            const merger = toneCtx.createChannelMerger(2);
+            if (side !== 'R') out.connect(merger, 0, 0);
+            if (side !== 'L') out.connect(merger, 0, 1);
+            merger.connect(toneCtx.destination);
+            // Two rising C-E-G-C chimes, about 2 seconds
+            [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => [0, 1].forEach(rep => {
+                const st = t0 + rep * 1 + i * 0.18;
+                const o = toneCtx.createOscillator(), g = toneCtx.createGain();
+                o.type = 'triangle'; o.frequency.value = f;
+                g.gain.setValueAtTime(0.0001, st);
+                g.gain.exponentialRampToValueAtTime(1, st + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, st + 0.35);
+                o.connect(g).connect(out); o.start(st); o.stop(st + 0.4);
+            }));
+            const name = { L: 'LEFT only', R: 'RIGHT only', B: 'BOTH sides' }[side];
+            const st = document.getElementById('tone-status');
+            st.textContent = `Playing: ${name}`;
+            clearTimeout(playTone.t); playTone.t = setTimeout(() => { st.textContent = 'Tap LEFT, then RIGHT — sound should only come from that side.'; }, 2200);
+        }
+
+        // --- KEY CAPTURE ---
+        // Keys are only captured while the keyboard test is open, so the rest of the page
+        // (shortcuts, Tab, Enter on buttons, scrolling) works normally.
+        document.addEventListener('keydown', (e) => {
+            if (kbOpen) { e.preventDefault(); handleKey(e, true); return; }
+            if (e.key === 'Escape') exitScreenTests();
         });
-        document.addEventListener('keyup', (e) => { 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
-            e.preventDefault(); handleKey(e, false); 
+        document.addEventListener('keyup', (e) => {
+            if (kbOpen) { e.preventDefault(); handleKey(e, false); }
         });
+        // Keyup is lost when the window loses focus (Win key, Alt+Tab), so clear highlights.
+        window.addEventListener('blur', clearActiveKeys);
+        window.addEventListener('resize', () => { if (kbOpen) fitKeyboard(); });
 
         // --- MODULES ---
-        window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); }
+        window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); initTouchpad(); detectSpecs(); }
         
         function initBattery() {
             const l = document.getElementById('battLevel'); const s = document.getElementById('battState');
             if ('getBattery' in navigator) navigator.getBattery().then(b => {
-                const u = () => { l.innerText=(b.level*100).toFixed(0)+"%"; s.innerText=b.charging?"CHARGING (AC) ⚡":"BATTERY MODE"; s.style.color=b.charging?"#00ff00":"#ff9900"; };
+                const u = () => { l.innerText=(b.level*100).toFixed(0)+"%"; s.innerText=b.charging?"CHARGING (AC) ⚡":"BATTERY MODE"; s.style.color=b.charging?"#ffffff":"#8f8f8f"; };
                 u(); b.addEventListener('chargingchange', u); b.addEventListener('levelchange', u);
             }); else { l.innerText="N/A"; s.innerText="NO API"; }
         }
@@ -394,26 +1026,144 @@
             const m=document.getElementById('touchModal'); m.style.display="block";
             const c=document.getElementById('touchCanvas'); const x=c.getContext('2d');
             c.width=c.parentElement.clientWidth-50; let p=false;
-            const d=(e)=>{ if(!p)return; const r=c.getBoundingClientRect(); const X=(e.clientX||e.touches[0].clientX)-r.left; const Y=(e.clientY||e.touches[0].clientY)-r.top; x.lineWidth=5; x.lineCap='round'; x.strokeStyle='#00979C'; x.lineTo(X,Y); x.stroke(); x.beginPath(); x.moveTo(X,Y); };
+            const d=(e)=>{ if(!p)return; const r=c.getBoundingClientRect(); const X=(e.clientX||e.touches[0].clientX)-r.left; const Y=(e.clientY||e.touches[0].clientY)-r.top; x.lineWidth=5; x.lineCap='round'; x.strokeStyle='#ffffff'; x.lineTo(X,Y); x.stroke(); x.beginPath(); x.moveTo(X,Y); };
             c.onmousedown=(e)=>{p=true;d(e)}; c.onmouseup=()=>{p=false;x.beginPath()}; c.onmousemove=d;
             c.ontouchstart=(e)=>{e.preventDefault();p=true;d(e)}; c.ontouchend=(e)=>{e.preventDefault();p=false;x.beginPath()}; c.ontouchmove=(e)=>{e.preventDefault();d(e)};
         }
         function clearCanvas() { const c=document.getElementById('touchCanvas'); c.getContext('2d').clearRect(0,0,c.width,c.height); }
 
-        const kbLayout = [["Esc","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Del"],["`","1","2","3","4","5","6","7","8","9","0","-","=","Back"],["Tab","Q","W","E","R","T","Y","U","I","O","P","[","]","\\"],["Caps","A","S","D","F","G","H","J","K","L",";","'","Enter"],["Shift","Z","X","C","V","B","N","M",",",".","/","Shift"],["Ctrl","Win","Alt","Space","Alt","Fn","Ctrl","◄","▼","▲","►"]];
+        // --- KEYBOARD TEST (15.6" laptop layout with numpad) ---
+        // Keys match on e.code (the physical key), so left/right Shift, numpad vs number row,
+        // Shift+digit and non-US layouts each light the right key.
+        // Positions and sizes are in key units (1u = one letter key).
+        const KB_WIDTH = 19.25, KB_ROW_Y = [0, 0.9, 1.9, 2.9, 3.9, 4.9];
+        const KB_UNTESTABLE = ['Fn']; // browsers never receive Fn; starts as N/A
+        let kbKeys = [], kbOpen = false;
+
+        function buildKbLayout() {
+            const keys = [], y = KB_ROW_Y;
+            const add = (code, label, x, top, w = 1, h = 1, name = label) => keys.push({ code, label, name, x, y: top, w, h });
+            const row = (top, x, list) => list.forEach(([code, label, w = 1, name]) => { add(code, label, x, top, w, 1, name); x += w; });
+            const letters = s => s.split('').map(ch => ['Key' + ch, ch]);
+            const digits = s => s.split('').map(d => ['Digit' + d, d]);
+            const num = s => s.split('').map(d => ['Numpad' + d, d, 1, 'Num ' + d]);
+
+            // Function row: 20 slim keys across the full width
+            const fRow = [['Escape', 'Esc'], ...Array.from({ length: 12 }, (_, i) => ['F' + (i + 1), 'F' + (i + 1)]),
+                ['PrintScreen', 'PrtSc'], ['Insert', 'Ins'], ['Delete', 'Del'], ['Home', 'Home'], ['End', 'End'], ['PageUp', 'PgUp'], ['PageDown', 'PgDn']];
+            const fw = KB_WIDTH / fRow.length;
+            fRow.forEach(([code, label], i) => add(code, label, i * fw, y[0], fw, 0.75));
+
+            // Main block (15u wide)
+            row(y[1], 0, [['Backquote', '`'], ...digits('1234567890'), ['Minus', '-'], ['Equal', '='], ['Backspace', 'Back', 2, 'Backspace']]);
+            row(y[2], 0, [['Tab', 'Tab', 1.5], ...letters('QWERTYUIOP'), ['BracketLeft', '['], ['BracketRight', ']'], ['Backslash', '\\', 1.5]]);
+            row(y[3], 0, [['CapsLock', 'Caps', 1.75, 'CapsLock'], ...letters('ASDFGHJKL'), ['Semicolon', ';'], ['Quote', "'"], ['Enter', 'Enter', 2.25]]);
+            row(y[4], 0, [['ShiftLeft', 'Shift', 2.25, 'L-Shift'], ...letters('ZXCVBNM'), ['Comma', ','], ['Period', '.'], ['Slash', '/'], ['ShiftRight', 'Shift', 2.75, 'R-Shift']]);
+            row(y[5], 0, [['ControlLeft', 'Ctrl', 1.25, 'L-Ctrl'], ['Fn', 'Fn'], ['MetaLeft', 'Win', 1.25], ['AltLeft', 'Alt', 1.25, 'L-Alt'],
+                ['Space', 'Space', 5.25], ['AltRight', 'Alt', 1, 'R-Alt'], ['ControlRight', 'Ctrl', 1, 'R-Ctrl'], ['ArrowLeft', '◄', 1, 'Left']]);
+            add('ArrowUp', '▲', 13, y[5], 1, 0.5, 'Up');
+            add('ArrowDown', '▼', 13, y[5] + 0.5, 1, 0.5, 'Down');
+            add('ArrowRight', '►', 14, y[5], 1, 1, 'Right');
+
+            // Numpad (4u wide)
+            const nx = 15.25;
+            row(y[1], nx, [['NumLock', 'Num', 1, 'NumLock'], ['NumpadDivide', '/', 1, 'Num /'], ['NumpadMultiply', '*', 1, 'Num *'], ['NumpadSubtract', '-', 1, 'Num -']]);
+            row(y[2], nx, num('789')); add('NumpadAdd', '+', nx + 3, y[2], 1, 2, 'Num +');
+            row(y[3], nx, num('456'));
+            row(y[4], nx, num('123')); add('NumpadEnter', 'Enter', nx + 3, y[4], 1, 2, 'Num Enter');
+            row(y[5], nx, [['Numpad0', '0', 2, 'Num 0'], ['NumpadDecimal', '.', 1, 'Num .']]);
+            return keys;
+        }
+
         function generateKeyboard() {
-            const w=document.getElementById('keyboard-layout');
-            kbLayout.forEach(row=>{ const d=document.createElement('div'); d.className='kb-row'; row.forEach(k=>{ const b=document.createElement('div'); b.className='key'; b.innerText=k; b.dataset.key=k.toUpperCase(); if(k==="Space")b.classList.add('k-space'); if(k==="Shift")b.classList.add('k-shift'); if(k==="Enter")b.classList.add('k-enter'); d.appendChild(b); }); w.appendChild(d); });
+            const w = document.getElementById('keyboard-layout');
+            w.innerHTML = '';
+            kbKeys = buildKbLayout();
+            kbKeys.forEach(k => {
+                const el = document.createElement('div');
+                el.className = 'key'; el.textContent = k.label; el.title = k.name; el.dataset.code = k.code;
+                el.style.left = `calc(var(--u) * ${k.x})`; el.style.top = `calc(var(--u) * ${k.y})`;
+                el.style.width = `calc(var(--u) * ${k.w} - 4px)`; el.style.height = `calc(var(--u) * ${k.h} - 4px)`;
+                el.onclick = () => toggleKeyNA(k);
+                k.el = el; w.appendChild(el);
+            });
+            resetKeyboardTest();
         }
-        function handleKey(e,d) {
-            let k=e.key.toUpperCase(); let c=e.code;
-            if(c==="Space")k="SPACE"; if(c==="Escape"){if(d){document.getElementById('kbModal').style.display="none";exitScreenTests();}return;}
-            if(c.includes("Enter"))k="ENTER"; if(c.includes("Shift"))k="SHIFT"; if(c.includes("Control"))k="CTRL"; if(c.includes("Alt"))k="ALT"; if(c.includes("Meta"))k="WIN";
-            if(k==="ARROWUP")k="▲"; if(k==="ARROWDOWN")k="▼"; if(k==="ARROWLEFT")k="◄"; if(k==="ARROWRIGHT")k="►";
-            document.querySelectorAll('.key').forEach(el=>{if(el.dataset.key===k){if(d){el.classList.add('active');el.classList.add('tested');}else el.classList.remove('active');}});
+
+        const isNA = k => k.el.classList.contains('na');
+        const isTested = k => k.el.classList.contains('tested');
+
+        function fitKeyboard() {
+            const w = document.getElementById('keyboard-layout');
+            const u = Math.max(22, Math.min(52, Math.floor(w.parentElement.clientWidth / KB_WIDTH)));
+            w.style.setProperty('--u', u + 'px');
         }
-        function openKeyboardModal() { document.getElementById('kbModal').style.display="block"; }
-        function closeKeyboardModal() { document.getElementById('kbModal').style.display="none"; }
+
+        function handleKey(e, down) {
+            const k = kbKeys.find(x => x.code === e.code);
+            document.getElementById('kb-last').textContent = k ? k.name : `${e.code || '?'} (${e.key}) — not on layout`;
+            // Mac drops other keys' keyup while Cmd is held, so clear everything when Cmd goes up
+            if (!down && e.key === 'Meta') clearActiveKeys();
+            if (!k) return;
+            k.el.classList.toggle('active', down);
+            // Mark on keyup too: PrtSc on Windows only fires keyup
+            if (!isTested(k)) { k.el.classList.remove('na'); k.el.classList.add('tested'); updateKbProgress(); }
+        }
+
+        function toggleKeyNA(k) {
+            if (isNA(k)) k.el.classList.remove('na');
+            else { k.el.classList.add('na'); k.el.classList.remove('tested', 'active'); }
+            updateKbProgress();
+        }
+
+        function clearActiveKeys() { kbKeys.forEach(k => k.el.classList.remove('active')); }
+
+        function updateKbProgress() {
+            const counted = kbKeys.filter(k => !isNA(k));
+            const tested = counted.filter(isTested).length;
+            const naCount = kbKeys.length - counted.length;
+            document.getElementById('kb-count').textContent = `${tested} / ${counted.length}`;
+            document.getElementById('kb-na-count').textContent = naCount ? `(N/A: ${naCount})` : '';
+            // All keys pressed -> auto PASS, unless the technician already set a result
+            const s = document.getElementById('s-kb');
+            if (counted.length && tested === counted.length && s.classList.contains('wait')) updateStatus('kb', true);
+        }
+
+        function resetKeyboardTest() {
+            kbKeys.forEach(k => {
+                k.el.classList.remove('tested', 'active', 'na');
+                if (KB_UNTESTABLE.includes(k.code)) k.el.classList.add('na');
+            });
+            document.getElementById('kb-last').textContent = '—';
+            const s = document.getElementById('s-kb');
+            s.innerText = 'WAITING...'; s.className = 'status wait'; updateQcProgress();
+            updateKbProgress();
+        }
+
+        function keyboardReportNote() {
+            const counted = kbKeys.filter(k => !isNA(k));
+            const tested = counted.filter(isTested).length;
+            if (!tested) return '';
+            const untested = counted.filter(k => !isTested(k)).map(k => k.name);
+            const na = kbKeys.filter(isNA).map(k => k.name);
+            let s = `   Keys tested: ${tested}/${counted.length}`;
+            if (untested.length) s += `\n   Not responding: ${untested.join(', ')}`;
+            if (na.length) s += `\n   N/A on this model: ${na.join(', ')}`;
+            return s + '\n';
+        }
+
+        function openKeyboardModal() {
+            document.getElementById('kbModal').style.display = "block";
+            document.getElementById('kb-verify').style.display = "block";
+            if (document.activeElement) document.activeElement.blur();
+            kbOpen = true;
+            fitKeyboard();
+        }
+        function closeKeyboardModal() {
+            document.getElementById('kbModal').style.display = "none";
+            kbOpen = false;
+            clearActiveKeys();
+        }
 
         const col=["red","green","blue","white","black"]; let cIdx=0;
         function startColorTest() { const s=document.getElementById('screenOverlay'); s.style.display="block"; s.style.background=col[0]; enterFullscreen(s); document.getElementById('lcd-verify').style.display="block"; }
@@ -466,14 +1216,14 @@
         function startS() {
             const b=document.getElementById('btn-spk'); const i=document.getElementById('spk-indicator');
             if(!ap){ ap=new Audio(url); ap.loop=true; } ap.currentTime=0; ap.play().then(()=>{
-                run=true; tl=30; b.classList.add('danger'); b.classList.remove('primary'); document.getElementById('spk-status').innerText="PLAYING...";
+                run=true; tl=30; b.classList.add('danger'); document.getElementById('spk-status').innerText="PLAYING...";
                 si=setInterval(()=>{ tl--; b.innerText=`STOP (${tl}s)`; i.style.width=(Math.floor(Math.random()*80)+20)+"%"; if(tl<=0)stopS(); },1000);
             }).catch(e=>{ alert("Conn Err: "+e); stopS(); });
         }
         function stopS() {
             if(ap){ ap.pause(); ap.currentTime=0; } clearInterval(si); run=false;
-            const b=document.getElementById('btn-spk'); b.innerText="▶ PLAY MUSIC (30s)"; b.classList.remove('danger'); b.classList.add('primary');
-            document.getElementById('spk-indicator').style.width="0%"; document.getElementById('spk-status').innerText="*Need Internet";
+            const b=document.getElementById('btn-spk'); b.innerText="▶ PLAY MUSIC (30s)"; b.classList.remove('danger');
+            document.getElementById('spk-indicator').style.width="0%"; document.getElementById('spk-status').innerText="*Music needs Internet";
         }
     </script>
 </body>
