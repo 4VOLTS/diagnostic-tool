@@ -111,13 +111,19 @@
         }
         .report-inputs input::placeholder { color: #555; }
 
-        /* KEYBOARD */
-        .keyboard-wrapper { display: grid; gap: 5px; margin-top: 20px; justify-content: center; user-select: none; font-family: 'Roboto Mono', monospace; }
-        .kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
-        .key { background: #222; border: 1px solid #444; border-radius: 3px; min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ccc; transition: 0.05s; }
+        /* KEYBOARD (15.6" laptop layout with numpad; sizes are in key units, --u is set by JS to fit) */
+        #kbModal .modal-content { max-width: 1200px; }
+        .kb-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 10px 0; font-family: 'Roboto Mono', monospace; font-size: 12px; text-align: left; }
+        .kb-toolbar button { width: auto; }
+        .kb-count { color: var(--arduino-teal); font-size: 18px; font-weight: bold; }
+        .kb-last { color: #ddd; }
+        .kb-scroll { overflow-x: auto; padding-bottom: 5px; }
+        .keyboard-wrapper { --u: 44px; position: relative; margin: 10px auto 0; user-select: none; font-family: 'Roboto Mono', monospace; width: calc(var(--u) * 19.25); height: calc(var(--u) * 5.9); }
+        .key { position: absolute; box-sizing: border-box; background: #222; border: 1px solid #444; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: max(8px, calc(var(--u) * 0.24)); font-weight: bold; color: #ccc; transition: 0.05s; cursor: pointer; overflow: hidden; white-space: nowrap; }
         .key.tested { background: var(--arduino-teal); color: white; border-color: var(--arduino-teal); }
         .key.active { background: white !important; color: black !important; transform: scale(0.95); box-shadow: 0 0 10px white !important; }
-        .k-space { width: 250px; } .k-shift { width: 90px; } .k-enter { width: 80px; } .k-tab { width: 60px; } .k-back { width: 70px; } .k-caps { width: 80px; }
+        .key.na { background: transparent; border-style: dashed; color: #666; text-decoration: line-through; }
+        .kb-hint { font-size: 11px; color: #888; margin-top: 10px; font-family: 'Roboto Mono', monospace; line-height: 1.5; }
 
         /* OVERLAYS */
         #screenOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; cursor: pointer; }
@@ -200,7 +206,7 @@
             <div class="tool-card">
                 <div>
                     <h3>KEYBOARD.test()</h3>
-                    <p>Key matrix integrity.</p>
+                    <p>15.6" layout + numpad.</p>
                     <button class="primary" onclick="openKeyboardModal()">LAUNCH TEST</button>
                 </div>
                 <div id="kb-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
@@ -315,7 +321,29 @@
     </div>
 
     <!-- OTHER MODALS -->
-    <div id="kbModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeKeyboardModal()">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">KEYBOARD_TEST</h2><div class="keyboard-wrapper" id="keyboard-layout"></div></div></div>
+    <div id="kbModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeKeyboardModal()">&times;</span>
+            <h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">KEYBOARD_TEST</h2>
+            <div class="kb-toolbar">
+                <div>
+                    TESTED: <span id="kb-count" class="kb-count">0 / 0</span> <span id="kb-na-count" style="color:#888;"></span><br>
+                    LAST KEY: <span id="kb-last" class="kb-last">—</span>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button onclick="resetKeyboardTest()">RESET</button>
+                    <button class="success" onclick="updateStatus('kb', true); closeKeyboardModal()">PASS</button>
+                    <button class="danger" onclick="updateStatus('kb', false); closeKeyboardModal()">FAIL</button>
+                </div>
+            </div>
+            <div class="kb-scroll"><div class="keyboard-wrapper" id="keyboard-layout"></div></div>
+            <div class="kb-hint">
+                Press every key. Click a key to mark it N/A (not on this model) — click again to undo.<br>
+                Fn can't be seen by browsers: check it with Fn+F-key combos. F-keys changing volume/brightness? Hold Fn.<br>
+                Esc is tested like any key — close with &times; or PASS / FAIL.
+            </div>
+        </div>
+    </div>
     <div id="touchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">TOUCH_TEST</h2><canvas id="touchCanvas" width="800" height="400"></canvas><br><button class="primary" onclick="clearCanvas()">CLEAR</button></div></div>
     <div id="screenOverlay"><div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#888; font-size:20px; pointer-events:none; font-family:'Roboto Mono';">CLICK_TO_CYCLE_COLOR<br>ESC_TO_EXIT</div></div>
     <div id="hz-tester"><div class="moving-bar" id="hz-bar"></div><div class="hz-info"><span style="color:#aaa; font-size:12px;">// REFRESH RATE MONITOR</span><br>FPS: <span id="frame-count" style="color:var(--arduino-teal); font-size:40px;">CALC...</span><br><div style="margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-left:3px solid var(--arduino-teal);">RES: <span id="res-disp" style="color:white;font-size:18px;">DETECT...</span></div></div></div>
@@ -346,6 +374,7 @@
                 wifi: getStatus('wifi'), batt: getStatus('batt'), kb: getStatus('kb'),
                 touch: getStatus('touch'), lcd: getStatus('lcd'), cam: getStatus('cam'),
                 mic: getStatus('mic'), spk: getStatus('spk'), usb: getStatus('usb'), hdmi: getStatus('hdmi'),
+                kbNote: keyboardReportNote(),
                 tech: id.tech, comp: id.comp
             };
             textArea.value = generateManualReport(data);
@@ -354,7 +383,7 @@
         function generateManualReport(d) {
             const date = new Date().toLocaleDateString('en-GB');
             const time = new Date().toLocaleTimeString('en-GB');
-            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\nHARDWARE TEST RESULTS:\n\n1. Network (WiFi):     [ ${d.wifi} ]\n2. Power (Battery):    [ ${d.batt} ]\n3. Keyboard:           [ ${d.kb} ]\n4. Screen / Display:   [ ${d.lcd} ]\n5. Touch Panel:        [ ${d.touch} ]\n6. Webcam:             [ ${d.cam} ]\n7. Microphone:         [ ${d.mic} ]\n8. Speaker:            [ ${d.spk} ]\n9. USB Port:           [ ${d.usb} ]\n10. HDMI / External:   [ ${d.hdmi} ]\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n\nThank you for choosing ${d.comp}.\n========================================`;
+            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\nHARDWARE TEST RESULTS:\n\n1. Network (WiFi):     [ ${d.wifi} ]\n2. Power (Battery):    [ ${d.batt} ]\n3. Keyboard:           [ ${d.kb} ]\n${d.kbNote}4. Screen / Display:   [ ${d.lcd} ]\n5. Touch Panel:        [ ${d.touch} ]\n6. Webcam:             [ ${d.cam} ]\n7. Microphone:         [ ${d.mic} ]\n8. Speaker:            [ ${d.spk} ]\n9. USB Port:           [ ${d.usb} ]\n10. HDMI / External:   [ ${d.hdmi} ]\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n\nThank you for choosing ${d.comp}.\n========================================`;
         }
 
         function copyReport() { const t = document.getElementById("finalReportArea"); t.select(); document.execCommand("copy"); alert("Copied!"); }
@@ -369,15 +398,19 @@
             else { el.innerText = "FAIL_ERR"; el.className = "status fail"; }
         }
 
-        // --- INPUT FIX (PREVENT KEYBOARD TESTER FROM BLOCKING TYPING) ---
-        document.addEventListener('keydown', (e) => { 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
-            e.preventDefault(); handleKey(e, true); 
+        // --- KEY CAPTURE ---
+        // Keys are only captured while the keyboard test is open, so the rest of the page
+        // (shortcuts, Tab, Enter on buttons, scrolling) works normally.
+        document.addEventListener('keydown', (e) => {
+            if (kbOpen) { e.preventDefault(); handleKey(e, true); return; }
+            if (e.key === 'Escape') exitScreenTests();
         });
-        document.addEventListener('keyup', (e) => { 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; 
-            e.preventDefault(); handleKey(e, false); 
+        document.addEventListener('keyup', (e) => {
+            if (kbOpen) { e.preventDefault(); handleKey(e, false); }
         });
+        // Keyup is lost when the window loses focus (Win key, Alt+Tab), so clear highlights.
+        window.addEventListener('blur', clearActiveKeys);
+        window.addEventListener('resize', () => { if (kbOpen) fitKeyboard(); });
 
         // --- MODULES ---
         window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); }
@@ -400,20 +433,138 @@
         }
         function clearCanvas() { const c=document.getElementById('touchCanvas'); c.getContext('2d').clearRect(0,0,c.width,c.height); }
 
-        const kbLayout = [["Esc","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Del"],["`","1","2","3","4","5","6","7","8","9","0","-","=","Back"],["Tab","Q","W","E","R","T","Y","U","I","O","P","[","]","\\"],["Caps","A","S","D","F","G","H","J","K","L",";","'","Enter"],["Shift","Z","X","C","V","B","N","M",",",".","/","Shift"],["Ctrl","Win","Alt","Space","Alt","Fn","Ctrl","◄","▼","▲","►"]];
+        // --- KEYBOARD TEST (15.6" laptop layout with numpad) ---
+        // Keys match on e.code (the physical key), so left/right Shift, numpad vs number row,
+        // Shift+digit and non-US layouts each light the right key.
+        // Positions and sizes are in key units (1u = one letter key).
+        const KB_WIDTH = 19.25, KB_ROW_Y = [0, 0.9, 1.9, 2.9, 3.9, 4.9];
+        const KB_UNTESTABLE = ['Fn']; // browsers never receive Fn; starts as N/A
+        let kbKeys = [], kbOpen = false;
+
+        function buildKbLayout() {
+            const keys = [], y = KB_ROW_Y;
+            const add = (code, label, x, top, w = 1, h = 1, name = label) => keys.push({ code, label, name, x, y: top, w, h });
+            const row = (top, x, list) => list.forEach(([code, label, w = 1, name]) => { add(code, label, x, top, w, 1, name); x += w; });
+            const letters = s => s.split('').map(ch => ['Key' + ch, ch]);
+            const digits = s => s.split('').map(d => ['Digit' + d, d]);
+            const num = s => s.split('').map(d => ['Numpad' + d, d, 1, 'Num ' + d]);
+
+            // Function row: 20 slim keys across the full width
+            const fRow = [['Escape', 'Esc'], ...Array.from({ length: 12 }, (_, i) => ['F' + (i + 1), 'F' + (i + 1)]),
+                ['PrintScreen', 'PrtSc'], ['Insert', 'Ins'], ['Delete', 'Del'], ['Home', 'Home'], ['End', 'End'], ['PageUp', 'PgUp'], ['PageDown', 'PgDn']];
+            const fw = KB_WIDTH / fRow.length;
+            fRow.forEach(([code, label], i) => add(code, label, i * fw, y[0], fw, 0.75));
+
+            // Main block (15u wide)
+            row(y[1], 0, [['Backquote', '`'], ...digits('1234567890'), ['Minus', '-'], ['Equal', '='], ['Backspace', 'Back', 2, 'Backspace']]);
+            row(y[2], 0, [['Tab', 'Tab', 1.5], ...letters('QWERTYUIOP'), ['BracketLeft', '['], ['BracketRight', ']'], ['Backslash', '\\', 1.5]]);
+            row(y[3], 0, [['CapsLock', 'Caps', 1.75, 'CapsLock'], ...letters('ASDFGHJKL'), ['Semicolon', ';'], ['Quote', "'"], ['Enter', 'Enter', 2.25]]);
+            row(y[4], 0, [['ShiftLeft', 'Shift', 2.25, 'L-Shift'], ...letters('ZXCVBNM'), ['Comma', ','], ['Period', '.'], ['Slash', '/'], ['ShiftRight', 'Shift', 2.75, 'R-Shift']]);
+            row(y[5], 0, [['ControlLeft', 'Ctrl', 1.25, 'L-Ctrl'], ['Fn', 'Fn'], ['MetaLeft', 'Win', 1.25], ['AltLeft', 'Alt', 1.25, 'L-Alt'],
+                ['Space', 'Space', 5.25], ['AltRight', 'Alt', 1, 'R-Alt'], ['ControlRight', 'Ctrl', 1, 'R-Ctrl'], ['ArrowLeft', '◄', 1, 'Left']]);
+            add('ArrowUp', '▲', 13, y[5], 1, 0.5, 'Up');
+            add('ArrowDown', '▼', 13, y[5] + 0.5, 1, 0.5, 'Down');
+            add('ArrowRight', '►', 14, y[5], 1, 1, 'Right');
+
+            // Numpad (4u wide)
+            const nx = 15.25;
+            row(y[1], nx, [['NumLock', 'Num', 1, 'NumLock'], ['NumpadDivide', '/', 1, 'Num /'], ['NumpadMultiply', '*', 1, 'Num *'], ['NumpadSubtract', '-', 1, 'Num -']]);
+            row(y[2], nx, num('789')); add('NumpadAdd', '+', nx + 3, y[2], 1, 2, 'Num +');
+            row(y[3], nx, num('456'));
+            row(y[4], nx, num('123')); add('NumpadEnter', 'Enter', nx + 3, y[4], 1, 2, 'Num Enter');
+            row(y[5], nx, [['Numpad0', '0', 2, 'Num 0'], ['NumpadDecimal', '.', 1, 'Num .']]);
+            return keys;
+        }
+
         function generateKeyboard() {
-            const w=document.getElementById('keyboard-layout');
-            kbLayout.forEach(row=>{ const d=document.createElement('div'); d.className='kb-row'; row.forEach(k=>{ const b=document.createElement('div'); b.className='key'; b.innerText=k; b.dataset.key=k.toUpperCase(); if(k==="Space")b.classList.add('k-space'); if(k==="Shift")b.classList.add('k-shift'); if(k==="Enter")b.classList.add('k-enter'); d.appendChild(b); }); w.appendChild(d); });
+            const w = document.getElementById('keyboard-layout');
+            w.innerHTML = '';
+            kbKeys = buildKbLayout();
+            kbKeys.forEach(k => {
+                const el = document.createElement('div');
+                el.className = 'key'; el.textContent = k.label; el.title = k.name; el.dataset.code = k.code;
+                el.style.left = `calc(var(--u) * ${k.x})`; el.style.top = `calc(var(--u) * ${k.y})`;
+                el.style.width = `calc(var(--u) * ${k.w} - 4px)`; el.style.height = `calc(var(--u) * ${k.h} - 4px)`;
+                el.onclick = () => toggleKeyNA(k);
+                k.el = el; w.appendChild(el);
+            });
+            resetKeyboardTest();
         }
-        function handleKey(e,d) {
-            let k=e.key.toUpperCase(); let c=e.code;
-            if(c==="Space")k="SPACE"; if(c==="Escape"){if(d){document.getElementById('kbModal').style.display="none";exitScreenTests();}return;}
-            if(c.includes("Enter"))k="ENTER"; if(c.includes("Shift"))k="SHIFT"; if(c.includes("Control"))k="CTRL"; if(c.includes("Alt"))k="ALT"; if(c.includes("Meta"))k="WIN";
-            if(k==="ARROWUP")k="▲"; if(k==="ARROWDOWN")k="▼"; if(k==="ARROWLEFT")k="◄"; if(k==="ARROWRIGHT")k="►";
-            document.querySelectorAll('.key').forEach(el=>{if(el.dataset.key===k){if(d){el.classList.add('active');el.classList.add('tested');}else el.classList.remove('active');}});
+
+        const isNA = k => k.el.classList.contains('na');
+        const isTested = k => k.el.classList.contains('tested');
+
+        function fitKeyboard() {
+            const w = document.getElementById('keyboard-layout');
+            const u = Math.max(22, Math.min(52, Math.floor(w.parentElement.clientWidth / KB_WIDTH)));
+            w.style.setProperty('--u', u + 'px');
         }
-        function openKeyboardModal() { document.getElementById('kbModal').style.display="block"; }
-        function closeKeyboardModal() { document.getElementById('kbModal').style.display="none"; }
+
+        function handleKey(e, down) {
+            const k = kbKeys.find(x => x.code === e.code);
+            document.getElementById('kb-last').textContent = k ? k.name : `${e.code || '?'} (${e.key}) — not on layout`;
+            // Mac drops other keys' keyup while Cmd is held, so clear everything when Cmd goes up
+            if (!down && e.key === 'Meta') clearActiveKeys();
+            if (!k) return;
+            k.el.classList.toggle('active', down);
+            // Mark on keyup too: PrtSc on Windows only fires keyup
+            if (!isTested(k)) { k.el.classList.remove('na'); k.el.classList.add('tested'); updateKbProgress(); }
+        }
+
+        function toggleKeyNA(k) {
+            if (isNA(k)) k.el.classList.remove('na');
+            else { k.el.classList.add('na'); k.el.classList.remove('tested', 'active'); }
+            updateKbProgress();
+        }
+
+        function clearActiveKeys() { kbKeys.forEach(k => k.el.classList.remove('active')); }
+
+        function updateKbProgress() {
+            const counted = kbKeys.filter(k => !isNA(k));
+            const tested = counted.filter(isTested).length;
+            const naCount = kbKeys.length - counted.length;
+            document.getElementById('kb-count').textContent = `${tested} / ${counted.length}`;
+            document.getElementById('kb-na-count').textContent = naCount ? `(N/A: ${naCount})` : '';
+            // All keys pressed -> auto PASS, unless the technician already set a result
+            const s = document.getElementById('s-kb');
+            if (counted.length && tested === counted.length && s.classList.contains('wait')) updateStatus('kb', true);
+        }
+
+        function resetKeyboardTest() {
+            kbKeys.forEach(k => {
+                k.el.classList.remove('tested', 'active', 'na');
+                if (KB_UNTESTABLE.includes(k.code)) k.el.classList.add('na');
+            });
+            document.getElementById('kb-last').textContent = '—';
+            const s = document.getElementById('s-kb');
+            s.innerText = 'WAITING...'; s.className = 'status wait';
+            updateKbProgress();
+        }
+
+        function keyboardReportNote() {
+            const counted = kbKeys.filter(k => !isNA(k));
+            const tested = counted.filter(isTested).length;
+            if (!tested) return '';
+            const untested = counted.filter(k => !isTested(k)).map(k => k.name);
+            const na = kbKeys.filter(isNA).map(k => k.name);
+            let s = `   Keys tested: ${tested}/${counted.length}`;
+            if (untested.length) s += `\n   Not responding: ${untested.join(', ')}`;
+            if (na.length) s += `\n   N/A on this model: ${na.join(', ')}`;
+            return s + '\n';
+        }
+
+        function openKeyboardModal() {
+            document.getElementById('kbModal').style.display = "block";
+            document.getElementById('kb-verify').style.display = "block";
+            if (document.activeElement) document.activeElement.blur();
+            kbOpen = true;
+            fitKeyboard();
+        }
+        function closeKeyboardModal() {
+            document.getElementById('kbModal').style.display = "none";
+            kbOpen = false;
+            clearActiveKeys();
+        }
 
         const col=["red","green","blue","white","black"]; let cIdx=0;
         function startColorTest() { const s=document.getElementById('screenOverlay'); s.style.display="block"; s.style.background=col[0]; enterFullscreen(s); document.getElementById('lcd-verify').style.display="block"; }
