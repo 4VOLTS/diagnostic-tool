@@ -238,7 +238,7 @@
                         <div class="fs-title">FULL SPECS <span>Windows · battery health, CPU, RAM, storage, LCD panel</span></div>
                         <div class="fs-steps">
                             <div class="fs-step"><span class="fs-n">1</span><button class="primary" onclick="copyPsCommand()">COPY COMMAND</button></div>
-                            <div class="fs-step"><span class="fs-n">2</span><div class="fs-text">Press <b>Win + X</b> → <b>Terminal</b> / <b>PowerShell</b>. Press <b>Ctrl + V</b> (choose <b>Paste anyway</b> if asked), then <b>Enter</b>.</div></div>
+                            <div class="fs-step"><span class="fs-n">2</span><div class="fs-text">Press <b>Win + X</b> → <b>Terminal (Admin)</b> / <b>PowerShell (Admin)</b>. Press <b>Ctrl + V</b> (choose <b>Paste anyway</b> if asked), then <b>Enter</b>.</div></div>
                             <div class="fs-step"><span class="fs-n">3</span><button onclick="pasteFullSpecs()">PASTE RESULT</button></div>
                         </div>
                         <textarea id="fsInput" rows="2" placeholder="…or paste the result here (Ctrl+V)" oninput="parseFullSpecs(this.value)"></textarea>
@@ -475,13 +475,22 @@ $cs = Get-CimInstance Win32_ComputerSystem
 $pr = Get-CimInstance Win32_ComputerSystemProduct
 A Maker $cs.Manufacturer
 A Model $(if ($cs.Manufacturer -match 'LENOVO' -and $pr.Version) { $pr.Version } else { $cs.Model })
-A Serial (Get-CimInstance Win32_BIOS).SerialNumber
+$bios = Get-CimInstance Win32_BIOS
+A Serial $bios.SerialNumber
+A BIOS "$($bios.Manufacturer)|$($bios.SMBIOSBIOSVersion)|$(if ($bios.ReleaseDate) { $bios.ReleaseDate.ToString('yyyy-MM-dd') })"
+$me = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+A Admin $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $os = Get-CimInstance Win32_OperatingSystem
 A OS "$($os.Caption) (build $($os.BuildNumber))"
 foreach ($c in @(Get-CimInstance Win32_Processor)) { A CPU "$($c.Name)|$($c.NumberOfCores)|$($c.NumberOfLogicalProcessors)" }
-foreach ($m in @(Get-CimInstance Win32_PhysicalMemory)) { A RAM "$([math]::Round($m.Capacity / 1GB))|$($m.SMBIOSMemoryType)|$($m.ConfiguredClockSpeed)" }
+foreach ($m in @(Get-CimInstance Win32_PhysicalMemory)) { A RAM "$([math]::Round($m.Capacity / 1GB))|$($m.SMBIOSMemoryType)|$($m.ConfiguredClockSpeed)|$($m.Manufacturer)|$($m.PartNumber)|$($m.DeviceLocator)" }
 A RAMSlots (Get-CimInstance Win32_PhysicalMemoryArray | Measure-Object MemoryDevices -Sum).Sum
-foreach ($d in @(Get-PhysicalDisk)) { A Disk "$($d.FriendlyName)|$($d.MediaType)|$($d.BusType)|$([math]::Round($d.Size / 1e9))|$($d.HealthStatus)" }
+$md = Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-MemoryDiagnostics-Results' } -MaxEvents 1 -ErrorAction SilentlyContinue
+if ($md) { A MemTest "$($md.Id)|$($md.TimeCreated.ToString('yyyy-MM-dd'))" } else { A MemTest 'none' }
+foreach ($d in @(Get-PhysicalDisk)) {
+  $r = $null; try { $r = $d | Get-StorageReliabilityCounter -ErrorAction Stop } catch {}
+  A Disk "$($d.FriendlyName)|$($d.MediaType)|$($d.BusType)|$([math]::Round($d.Size / 1e9))|$($d.HealthStatus)|$($r.Wear)|$($r.Temperature)|$($r.PowerOnHours)|$($r.ReadErrorsUncorrected)"
+}
 foreach ($g in @(Get-CimInstance Win32_VideoController)) { A GPU $g.Name }
 try {
   $f = Join-Path $env:TEMP '4tools-battery.xml'
@@ -672,6 +681,9 @@ Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n
         const PANEL_MAKERS = { AUO: 'AU Optronics', BOE: 'BOE', CMN: 'Innolux', INX: 'Innolux', LGD: 'LG Display', SDC: 'Samsung', SHP: 'Sharp', IVO: 'InfoVision', CSO: 'CSOT', CSW: 'CSOT', TMA: 'Tianma', KDB: 'Kyocera', LEN: 'Lenovo', APP: 'Apple' };
         const RAM_TYPES = { 20: 'DDR', 21: 'DDR2', 24: 'DDR3', 26: 'DDR4', 29: 'LPDDR3', 30: 'LPDDR4', 34: 'DDR5', 35: 'LPDDR5' };
         const LAPTOP_SIZES = [11.6, 12.5, 13.3, 13.5, 14, 15.6, 16, 17.3];
+        // RAM makers often show as JEDEC codes
+        const RAM_MAKERS = { '80CE': 'Samsung', '80AD': 'SK Hynix', '802C': 'Micron', '859B': 'Crucial', '0198': 'Kingston', '04CB': 'ADATA', '029E': 'Corsair', '04CD': 'G.Skill', '8551': 'Qimonda', '0443': 'Ramaxel', '80CE0000': 'Samsung', '80AD0000': 'SK Hynix', '802C0000': 'Micron' };
+        const healthGrade = pct => pct >= 80 ? 'Good' : pct >= 50 ? 'Worn' : 'Replace soon';
 
         function copyPsCommand() {
             const cmd = document.getElementById('ps-script').textContent.trim();
@@ -752,6 +764,11 @@ Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n
 
             rows.push(['Laptop', [one('Maker'), one('Model')].filter(Boolean).join(' ') || '—']);
             if (one('Serial')) rows.push(['Serial no.', one('Serial')]);
+            if (one('BIOS')) {
+                const [maker, ver, date] = one('BIOS').split('|');
+                rows.push(['BIOS', [ver, date && `released ${date}`, maker].filter(Boolean).join(' · ')]);
+            }
+            const isAdmin = /true/i.test(one('Admin'));
             (data.CPU || []).forEach(c => { const [name, cores, threads] = c.split('|'); rows.push(['CPU', `${tidy(name)} (${cores} cores / ${threads} threads)`]); });
 
             if (data.RAM) {
@@ -761,12 +778,34 @@ Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n
                 const speed = sticks[0][2] ? `-${sticks[0][2]}` : '';
                 const slots = one('RAMSlots');
                 rows.push(['RAM', `${total} GB ${type}${speed} · ${sticks.map(s => s[0] + 'GB').join(' + ')}` + (slots ? ` · ${sticks.length} of ${slots} slots used` : '')]);
+                const modules = sticks.map(([gb, , , maker = '', part = '', slot = '']) => {
+                    const m = RAM_MAKERS[maker.trim().toUpperCase()] || maker.trim();
+                    return [slot.trim(), `${gb}GB`, m, part.trim()].filter(x => x && !/^(unknown|undefined)$/i.test(x)).join(' ');
+                });
+                rows.push(['RAM modules', modules.join(' · ')]);
+            }
+            // RAM health = last Windows Memory Diagnostic result (1101/1201 = no errors, 1102/1202 = errors)
+            if (one('MemTest')) {
+                const [id, date] = one('MemTest').split('|');
+                let res = 'Not tested yet. Run "mdsched", restart, then run the command again';
+                if (['1101', '1201'].includes(id)) res = `No errors (Windows Memory Diagnostic, ${date})`;
+                else if (['1102', '1202'].includes(id)) res = `ERRORS FOUND (Windows Memory Diagnostic, ${date}). Reseat or replace RAM`;
+                rows.push(['RAM health', res]);
             }
 
             (data.Disk || []).forEach(d => {
-                const [name, media, bus, gb, health] = d.split('|');
+                const [name, media, bus, gb, status, wear, temp, hours, readErr] = d.split('|');
                 const kind = [bus, media].filter(x => x && x !== 'Unspecified').join(' ');
-                rows.push(['Storage', `${name} · ${gb} GB` + (kind ? ` · ${kind}` : '') + (health ? ` · ${health}` : '')]);
+                rows.push(['Storage', `${name} · ${gb} GB` + (kind ? ` · ${kind}` : '')]);
+                // Wear = % of rated life used (SSD). Needs PowerShell as Administrator.
+                const parts = [];
+                if (wear !== undefined && wear !== '' && media !== 'HDD') { const pct = 100 - +wear; parts.push(`${pct}% (${healthGrade(pct)})`); }
+                if (status) parts.push(`Windows: ${status}`);
+                if (+temp) parts.push(`${temp}°C`);
+                if (hours !== undefined && hours !== '') parts.push(`${(+hours).toLocaleString('en-US')} power-on hours`);
+                if (+readErr) parts.push(`${readErr} read errors`);
+                if ((wear === undefined || wear === '') && !isAdmin && media !== 'HDD') parts.push('run as Administrator for wear %');
+                rows.push([media === 'HDD' ? 'HDD health' : 'SSD health', parts.join(' · ') || '—']);
             });
             (data.GPU || []).forEach(g => rows.push(['GPU', tidy(g)]));
             if (one('OS')) rows.push(['OS', one('OS').replace('Microsoft ', '')]);
@@ -777,7 +816,7 @@ Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n
                 const [maker, model, chem, design, full, cycles] = bt.split('|');
                 if (!+design || !+full) return;
                 const pct = Math.round(full / design * 100);
-                const grade = pct >= 80 ? 'Good' : pct >= 60 ? 'Worn' : 'Replace soon';
+                const grade = healthGrade(pct);
                 const mwh = n => (+n).toLocaleString('en-US');
                 rows.push(['Battery health', `${pct}% (${grade}) · ${mwh(full)} / ${mwh(design)} mWh` + (cycles ? ` · ${cycles} cycles` : '')]);
                 rows.push(['Battery', [maker, model, chem].filter(Boolean).join(' · ')]);
