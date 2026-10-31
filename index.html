@@ -82,6 +82,14 @@
         .btn-stack { display: grid; gap: 8px; }
         .hint { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 6px; }
 
+        /* SYSTEM SPECS */
+        .spec-card { grid-column: 1 / -1; min-height: 0; }
+        .spec-auto { margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 8px; }
+        .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .spec { background: var(--bg); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .spec-k { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+        .spec-v { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+
         /* BUTTONS */
         button { background: transparent; color: var(--text); border: 1px solid var(--line-strong); padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; width: 100%; margin: 0; }
         button:hover { border-color: var(--text); }
@@ -203,6 +211,16 @@
 
         <!-- MAIN TOOLS GRID -->
         <div class="main-content">
+
+            <!-- SYSTEM SPECS -->
+            <div class="tool-card spec-card">
+                <div>
+                    <div class="card-head"><h3>SYSTEM.info()</h3><span class="spec-auto">AUTO-DETECTED</span></div>
+                    <p>Read by the browser when the page opens. Included in the report.</p>
+                    <div class="spec-grid" id="spec-grid"><div class="spec"><span class="spec-k">Status</span><span class="spec-v">Detecting...</span></div></div>
+                    <div class="hint">Browsers can't read CPU model, exact RAM above 8 GB, storage or battery health.</div>
+                </div>
+            </div>
 
             <!-- BATTERY -->
             <div class="tool-card">
@@ -485,6 +503,106 @@
         }
         buildQcList();
 
+        // --- SYSTEM SPECS (read automatically from the browser) ---
+        // Browsers hide CPU model, real RAM size, storage and battery health,
+        // so only what the browser exposes is shown.
+        let specs = [];
+
+        async function detectSpecs() {
+            const nav = navigator, ua = nav.userAgent;
+            let hi = {};
+            try { if (nav.userAgentData) hi = await nav.userAgentData.getHighEntropyValues(['platform', 'platformVersion', 'architecture', 'bitness', 'fullVersionList']); } catch (e) {}
+
+            // OS
+            let os = 'Unknown';
+            if (hi.platform === 'Windows') os = parseInt(hi.platformVersion) >= 13 ? 'Windows 11' : 'Windows 10';
+            else if (hi.platform === 'macOS') os = 'macOS ' + (hi.platformVersion || '').split('.').slice(0, 2).join('.');
+            else if (hi.platform) os = hi.platform + (hi.platformVersion ? ' ' + hi.platformVersion : '');
+            else if (/Windows NT 10/.test(ua)) os = 'Windows 10/11';
+            else if (/Mac OS X ([\d_]+)/.test(ua)) os = 'macOS ' + RegExp.$1.replace(/_/g, '.');
+            else if (/CrOS/.test(ua)) os = 'ChromeOS';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            let bits = '';
+            if (hi.architecture === 'arm') bits = hi.bitness === '64' ? 'ARM 64-bit' : 'ARM';
+            else if (hi.bitness) bits = hi.bitness + '-bit';
+            else if (/Win64|x86_64|x64/.test(ua)) bits = '64-bit';
+            if (bits) os += ` (${bits})`;
+
+            // Browser
+            let browser = 'Unknown';
+            const brands = (hi.fullVersionList || []).filter(b => !/Not.?A.?Brand|Chromium/i.test(b.brand));
+            if (brands.length) browser = brands[brands.length - 1].brand.replace('Google ', '') + ' ' + brands[brands.length - 1].version.split('.')[0];
+            else if (/Firefox\/(\d+)/.test(ua)) browser = 'Firefox ' + RegExp.$1;
+            else if (/Version\/(\d+).*Safari/.test(ua)) browser = 'Safari ' + RegExp.$1;
+
+            // CPU threads
+            const cpu = nav.hardwareConcurrency ? `${nav.hardwareConcurrency} threads` : 'Not available';
+
+            // RAM (browsers report at most 8 GB)
+            const mem = nav.deviceMemory;
+            const ram = !mem ? 'Not available (this browser)' : mem >= 8 ? '8 GB or more' : `About ${mem} GB`;
+
+            // GPU
+            let gpu = 'Not available';
+            try {
+                const gl = document.createElement('canvas').getContext('webgl');
+                const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+                let r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl && gl.getParameter(gl.RENDERER);
+                if (r) {
+                    const m = r.match(/^ANGLE \((.*)\)$/);
+                    if (m) r = m[1].split(', ')[1] || m[1];
+                    // "Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0" -> "Intel UHD Graphics 620"
+                    gpu = r.replace(/^ANGLE Metal Renderer:\s*/i, '').replace(/\s*\(0x[0-9a-f]+\)/ig, '')
+                           .replace(/\s+(Direct3D|vs_\d|OpenGL|Vulkan).*$/i, '').replace(/\((R|TM)\)/g, '').trim() || r;
+                }
+            } catch (e) {}
+
+            // Screen
+            const dpr = window.devicePixelRatio || 1;
+            const screenRes = `${Math.round(screen.width * dpr)} x ${Math.round(screen.height * dpr)} (scale ${Math.round(dpr * 100)}%)`;
+            const hz = await measureRefreshRate();
+            const touch = nav.maxTouchPoints > 0 ? `Yes (${nav.maxTouchPoints} points)` : 'No';
+
+            specs = [['OS', os], ['Browser', browser], ['CPU', cpu], ['RAM', ram], ['GPU', gpu],
+                     ['Screen', screenRes], ['Refresh rate', hz], ['Touchscreen', touch]];
+            renderSpecs();
+        }
+
+        // Count animation frames for ~1s and snap to a common refresh rate
+        function measureRefreshRate() {
+            return new Promise(resolve => {
+                let n = 0, start = null;
+                const step = t => {
+                    if (start === null) start = t;
+                    n++;
+                    if (t - start < 1000) return requestAnimationFrame(step);
+                    const fps = (n - 1) * 1000 / (t - start);
+                    const common = [30, 48, 50, 60, 75, 90, 100, 120, 144, 165, 180, 240, 360];
+                    const snap = common.reduce((a, b) => Math.abs(b - fps) < Math.abs(a - fps) ? b : a);
+                    resolve(document.hidden ? 'Not measured' : `${snap} Hz`);
+                };
+                requestAnimationFrame(step);
+            });
+        }
+
+        function renderSpecs() {
+            const box = document.getElementById('spec-grid');
+            box.innerHTML = '';
+            specs.forEach(([k, v]) => {
+                const d = document.createElement('div');
+                d.className = 'spec';
+                d.innerHTML = `<span class="spec-k"></span><span class="spec-v"></span>`;
+                d.querySelector('.spec-k').textContent = k;
+                d.querySelector('.spec-v').textContent = v;
+                box.appendChild(d);
+            });
+        }
+
+        function specsReportBlock() {
+            if (!specs.length) return '';
+            return 'SYSTEM SPECS (auto-detected):\n\n' + specs.map(([k, v]) => `${k}:`.padEnd(16) + v).join('\n') + '\n\n----------------------------------------\n';
+        }
+
         // --- REPORT GENERATION ---
         function generateReport() {
             document.getElementById('finalReportArea').value = generateManualReport(getGlobalIdentity());
@@ -499,7 +617,7 @@
                 const line = `${i + 1}. ${label}:`.padEnd(26) + `[ ${status} ]`;
                 return notes[id] ? line + '\n' + notes[id].replace(/\n$/, '') : line;
             }).join('\n');
-            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\nHARDWARE TEST RESULTS:\n\n${lines}\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n"N/A" = Not available on this model.\n\nThank you for choosing ${d.comp}.\n========================================`;
+            return `========================================\n${d.comp.toUpperCase()} - DIAGNOSTIC REPORT\nDate: ${date} | Time: ${time}\nTechnician: ${d.tech}\n========================================\n\n${specsReportBlock()}HARDWARE TEST RESULTS:\n\n${lines}\n\n----------------------------------------\nTECHNICIAN NOTES:\nPlease refer to the status above.\n"PASS_OK" = Good Condition.\n"FAIL_ERR" = Needs Attention.\n"N/A" = Not available on this model.\n\nThank you for choosing ${d.comp}.\n========================================`;
         }
 
         function copyReport() { const t = document.getElementById("finalReportArea"); t.select(); document.execCommand("copy"); alert("Copied!"); }
@@ -634,7 +752,7 @@
         window.addEventListener('resize', () => { if (kbOpen) fitKeyboard(); });
 
         // --- MODULES ---
-        window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); initTouchpad(); }
+        window.onload = function() { setTimeout(() => { updateStatus('wifi', true); }, 1000); generateKeyboard(); initBattery(); initTouchpad(); detectSpecs(); }
         
         function initBattery() {
             const l = document.getElementById('battLevel'); const s = document.getElementById('battState');
