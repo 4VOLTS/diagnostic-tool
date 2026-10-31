@@ -90,6 +90,20 @@
         .spec-k { font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
         .spec-v { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 
+        .full-specs { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+        .fs-title { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 12px; }
+        .fs-title span { font-weight: 400; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
+        .fs-steps { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 10px; align-items: center; }
+        @media (max-width: 800px) { .fs-steps { grid-template-columns: 1fr; } }
+        .fs-step { display: flex; align-items: center; gap: 10px; }
+        .fs-n { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-strong); display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+        .fs-text { font-size: 12px; color: var(--muted); line-height: 1.5; }
+        .fs-text b { color: var(--text); font-weight: 600; }
+        #fsInput { width: 100%; margin-top: 12px; background: var(--bg); color: var(--text); border: 1px dashed var(--line-strong); border-radius: 6px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; resize: vertical; }
+        #fsInput:focus { outline: none; border-color: var(--text); }
+        .spec-link { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+        .spec-link:hover { color: var(--text); }
+
         /* BUTTONS */
         button { background: transparent; color: var(--text); border: 1px solid var(--line-strong); padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; width: 100%; margin: 0; }
         button:hover { border-color: var(--text); }
@@ -218,7 +232,19 @@
                     <div class="card-head"><h3>SYSTEM.info()</h3><span class="spec-auto">AUTO-DETECTED</span></div>
                     <p>Read by the browser when the page opens. Included in the report.</p>
                     <div class="spec-grid" id="spec-grid"><div class="spec"><span class="spec-k">Status</span><span class="spec-v">Detecting...</span></div></div>
-                    <div class="hint">Browsers can't read CPU model, exact RAM above 8 GB, storage or battery health.</div>
+                    <div class="hint">Browsers can't read CPU model, exact RAM above 8 GB, storage or battery health — use Full Specs below.</div>
+
+                    <div class="full-specs">
+                        <div class="fs-title">FULL SPECS <span>Windows · battery health, CPU, RAM, storage, LCD panel</span></div>
+                        <div class="fs-steps">
+                            <div class="fs-step"><span class="fs-n">1</span><button class="primary" onclick="copyPsCommand()">COPY COMMAND</button></div>
+                            <div class="fs-step"><span class="fs-n">2</span><div class="fs-text">Press <b>Win + X</b> → <b>Terminal</b> / <b>PowerShell</b>. Press <b>Ctrl + V</b> (choose <b>Paste anyway</b> if asked), then <b>Enter</b>.</div></div>
+                            <div class="fs-step"><span class="fs-n">3</span><button onclick="pasteFullSpecs()">PASTE RESULT</button></div>
+                        </div>
+                        <textarea id="fsInput" rows="2" placeholder="…or paste the result here (Ctrl+V)" oninput="parseFullSpecs(this.value)"></textarea>
+                        <div id="fs-msg" class="hint"></div>
+                        <div class="spec-grid" id="fs-grid" style="display:none; margin-top:10px;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -229,6 +255,7 @@
                     <p>Charging circuit check.</p>
                     <div class="batt-info" id="battLevel">--%</div>
                     <div class="batt-icon" id="battState">DETECTING...</div>
+                    <div class="batt-icon" id="battHealth" style="color:var(--text); margin-top:6px;"></div>
                 </div>
                 <div class="verify" id="batt-verify">
                     <button class="success" onclick="updateStatus('batt', true)">OK</button>
@@ -439,6 +466,41 @@
         </div>
     </div>
 
+    <!-- PowerShell command copied by "COPY COMMAND". It only reads info and copies it to the clipboard. -->
+    <script type="text/plain" id="ps-script">
+& {
+$o = [System.Collections.Generic.List[string]]::new(); $o.Add('4TOOLS-SPECS v1')
+function A($k, $v) { $v = "$v".Trim(); if ($v) { $o.Add("$k=$v") } }
+$cs = Get-CimInstance Win32_ComputerSystem
+$pr = Get-CimInstance Win32_ComputerSystemProduct
+A Maker $cs.Manufacturer
+A Model $(if ($cs.Manufacturer -match 'LENOVO' -and $pr.Version) { $pr.Version } else { $cs.Model })
+A Serial (Get-CimInstance Win32_BIOS).SerialNumber
+$os = Get-CimInstance Win32_OperatingSystem
+A OS "$($os.Caption) (build $($os.BuildNumber))"
+foreach ($c in @(Get-CimInstance Win32_Processor)) { A CPU "$($c.Name)|$($c.NumberOfCores)|$($c.NumberOfLogicalProcessors)" }
+foreach ($m in @(Get-CimInstance Win32_PhysicalMemory)) { A RAM "$([math]::Round($m.Capacity / 1GB))|$($m.SMBIOSMemoryType)|$($m.ConfiguredClockSpeed)" }
+A RAMSlots (Get-CimInstance Win32_PhysicalMemoryArray | Measure-Object MemoryDevices -Sum).Sum
+foreach ($d in @(Get-PhysicalDisk)) { A Disk "$($d.FriendlyName)|$($d.MediaType)|$($d.BusType)|$([math]::Round($d.Size / 1e9))|$($d.HealthStatus)" }
+foreach ($g in @(Get-CimInstance Win32_VideoController)) { A GPU $g.Name }
+try {
+  $f = Join-Path $env:TEMP '4tools-battery.xml'
+  powercfg /batteryreport /xml /output $f | Out-Null
+  [xml]$x = Get-Content $f
+  foreach ($b in @($x.BatteryReport.Batteries.Battery)) { if ($b) { A Battery "$($b.Manufacturer)|$($b.Id)|$($b.Chemistry)|$($b.DesignCapacity)|$($b.FullChargeCapacity)|$($b.CycleCount)" } }
+  Remove-Item $f -ErrorAction SilentlyContinue
+} catch {}
+$conn = @{}
+foreach ($c in @(Get-CimInstance -Namespace root\wmi WmiMonitorConnectionParams -ErrorAction SilentlyContinue)) { $conn[$c.InstanceName] = $c.VideoOutputTechnology }
+foreach ($mon in @(Get-CimInstance -Namespace root\wmi WmiMonitorID -ErrorAction SilentlyContinue)) {
+  $key = 'HKLM:\SYSTEM\CurrentControlSet\Enum\' + ($mon.InstanceName -replace '_\d+$', '') + '\Device Parameters'
+  $edid = (Get-ItemProperty $key -ErrorAction SilentlyContinue).EDID
+  if ($edid) { A EDID "$($conn[$mon.InstanceName])|$(($edid | ForEach-Object { $_.ToString('x2') }) -join '')" }
+}
+Set-Clipboard ($o -join "`n")
+Write-Host "`n  DONE - specs copied. Go back to 4TOOLS and press PASTE RESULT.`n" -ForegroundColor Green
+}
+    </script>
     <script>
         const apiKey = ""; 
         
@@ -599,8 +661,167 @@
         }
 
         function specsReportBlock() {
-            if (!specs.length) return '';
-            return 'SYSTEM SPECS (auto-detected):\n\n' + specs.map(([k, v]) => `${k}:`.padEnd(16) + v).join('\n') + '\n\n----------------------------------------\n';
+            const rows = fullSpecs.length ? fullSpecs : specs;
+            if (!rows.length) return '';
+            const title = fullSpecs.length ? 'SYSTEM SPECS:' : 'SYSTEM SPECS (auto-detected by browser):';
+            return title + '\n\n' + rows.map(([k, v]) => `${k}:`.padEnd(16) + v).join('\n') + '\n\n----------------------------------------\n';
+        }
+
+        // --- FULL SPECS (Windows PowerShell result pasted back in) ---
+        let fullSpecs = [], panelPart = '';
+        const PANEL_MAKERS = { AUO: 'AU Optronics', BOE: 'BOE', CMN: 'Innolux', INX: 'Innolux', LGD: 'LG Display', SDC: 'Samsung', SHP: 'Sharp', IVO: 'InfoVision', CSO: 'CSOT', CSW: 'CSOT', TMA: 'Tianma', KDB: 'Kyocera', LEN: 'Lenovo', APP: 'Apple' };
+        const RAM_TYPES = { 20: 'DDR', 21: 'DDR2', 24: 'DDR3', 26: 'DDR4', 29: 'LPDDR3', 30: 'LPDDR4', 34: 'DDR5', 35: 'LPDDR5' };
+        const LAPTOP_SIZES = [11.6, 12.5, 13.3, 13.5, 14, 15.6, 16, 17.3];
+
+        function copyPsCommand() {
+            const cmd = document.getElementById('ps-script').textContent.trim();
+            const done = () => { document.getElementById('fs-msg').textContent = 'Command copied. Now paste it in PowerShell and press Enter.'; };
+            const fallback = () => {
+                const t = document.createElement('textarea'); t.value = cmd; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); t.remove(); done();
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(cmd).then(done, fallback);
+            else fallback();
+        }
+
+        async function pasteFullSpecs() {
+            const box = document.getElementById('fsInput');
+            try {
+                box.value = await navigator.clipboard.readText();
+                parseFullSpecs(box.value);
+            } catch (e) {
+                box.focus();
+                document.getElementById('fs-msg').textContent = 'Press Ctrl+V in the box below.';
+            }
+        }
+
+        // EDID (raw panel info) -> maker, part number, resolution, refresh, size, colour depth
+        function parseEdid(hex) {
+            const b = (hex.match(/../g) || []).map(h => parseInt(h, 16));
+            if (b.length < 128 || b[0] !== 0 || b[1] !== 0xff) return null;
+            const id = (b[8] << 8) | b[9];
+            const maker = String.fromCharCode(((id >> 10) & 31) + 64, ((id >> 5) & 31) + 64, (id & 31) + 64);
+            const d = 54; // first detailed timing = native mode
+            const pclk = (b[d] | (b[d + 1] << 8)) * 10000;
+            const w = b[d + 2] | ((b[d + 4] & 0xf0) << 4), hBlank = b[d + 3] | ((b[d + 4] & 0x0f) << 8);
+            const h = b[d + 5] | ((b[d + 7] & 0xf0) << 4), vBlank = b[d + 6] | ((b[d + 7] & 0x0f) << 8);
+            let wmm = b[d + 12] | ((b[d + 14] & 0xf0) << 4), hmm = b[d + 13] | ((b[d + 14] & 0x0f) << 8);
+            if (!wmm || !hmm) { wmm = b[21] * 10; hmm = b[22] * 10; }
+            const hz = pclk ? Math.round(pclk / ((w + hBlank) * (h + vBlank))) : 0;
+            let inch = Math.sqrt(wmm * wmm + hmm * hmm) / 25.4;
+            const near = LAPTOP_SIZES.find(s => Math.abs(s - inch) <= 0.25);
+            inch = near || Math.round(inch * 10) / 10;
+            // Text descriptors: 0xFC = name, 0xFE = free text (laptop panels put the part number here)
+            const texts = [];
+            for (const o of [54, 72, 90, 108]) {
+                if (b[o] === 0 && b[o + 1] === 0 && (b[o + 3] === 0xfc || b[o + 3] === 0xfe)) {
+                    const t = String.fromCharCode(...b.slice(o + 5, o + 18)).replace(/[\n\r\0].*$/s, '').trim();
+                    if (t) texts.push(t);
+                }
+            }
+            const digital = b[20] & 0x80;
+            const bpc = digital ? ({ 1: 6, 2: 8, 3: 10, 4: 12 })[(b[20] >> 4) & 7] : 0;
+            const isDP = digital && (b[20] & 0x0f) === 5;
+            return { maker, makerName: PANEL_MAKERS[maker] || maker, w, h, hz, inch, bpc, isDP, texts };
+        }
+
+        // eDP pin count isn't stored in the panel, so estimate it from bandwidth
+        function estimatePins(p, iface) {
+            if (iface === 'LVDS') return 'LVDS panel (older type), check the part number';
+            if (p.hz > 60) return 'Likely 40-pin (high refresh rate)';
+            if (p.w * p.h > 1920 * 1200) return 'Likely 40-pin (QHD/4K), some are 30-pin';
+            return 'Likely 30-pin (HD/FHD 60Hz)';
+        }
+
+        const tidy = t => t.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ').trim();
+
+        function parseFullSpecs(text) {
+            const msg = document.getElementById('fs-msg');
+            if (!/^\s*4TOOLS-SPECS/.test(text)) {
+                if (text.trim()) msg.textContent = "That doesn't look like the 4TOOLS result. Run the command again.";
+                return;
+            }
+            const data = {};
+            text.split(/\r?\n/).forEach(line => {
+                const i = line.indexOf('=');
+                if (i > 0) (data[line.slice(0, i)] = data[line.slice(0, i)] || []).push(line.slice(i + 1).trim());
+            });
+            const one = k => (data[k] || [])[0] || '';
+            const rows = [];
+            panelPart = '';
+
+            rows.push(['Laptop', [one('Maker'), one('Model')].filter(Boolean).join(' ') || '—']);
+            if (one('Serial')) rows.push(['Serial no.', one('Serial')]);
+            (data.CPU || []).forEach(c => { const [name, cores, threads] = c.split('|'); rows.push(['CPU', `${tidy(name)} (${cores} cores / ${threads} threads)`]); });
+
+            if (data.RAM) {
+                const sticks = data.RAM.map(r => r.split('|'));
+                const total = sticks.reduce((a, s) => a + (+s[0] || 0), 0);
+                const type = RAM_TYPES[sticks[0][1]] || '';
+                const speed = sticks[0][2] ? `-${sticks[0][2]}` : '';
+                const slots = one('RAMSlots');
+                rows.push(['RAM', `${total} GB ${type}${speed} · ${sticks.map(s => s[0] + 'GB').join(' + ')}` + (slots ? ` · ${sticks.length} of ${slots} slots used` : '')]);
+            }
+
+            (data.Disk || []).forEach(d => {
+                const [name, media, bus, gb, health] = d.split('|');
+                const kind = [bus, media].filter(x => x && x !== 'Unspecified').join(' ');
+                rows.push(['Storage', `${name} · ${gb} GB` + (kind ? ` · ${kind}` : '') + (health ? ` · ${health}` : '')]);
+            });
+            (data.GPU || []).forEach(g => rows.push(['GPU', tidy(g)]));
+            if (one('OS')) rows.push(['OS', one('OS').replace('Microsoft ', '')]);
+
+            // Battery health = full charge capacity / design capacity
+            let battHealth = '';
+            (data.Battery || []).forEach(bt => {
+                const [maker, model, chem, design, full, cycles] = bt.split('|');
+                if (!+design || !+full) return;
+                const pct = Math.round(full / design * 100);
+                const grade = pct >= 80 ? 'Good' : pct >= 60 ? 'Worn' : 'Replace soon';
+                const mwh = n => (+n).toLocaleString('en-US');
+                rows.push(['Battery health', `${pct}% (${grade}) · ${mwh(full)} / ${mwh(design)} mWh` + (cycles ? ` · ${cycles} cycles` : '')]);
+                rows.push(['Battery', [maker, model, chem].filter(Boolean).join(' · ')]);
+                battHealth = battHealth || `HEALTH ${pct}% · ${grade.toUpperCase()}`;
+            });
+            document.getElementById('battHealth').textContent = battHealth;
+
+            // LCD panel: prefer the built-in screen (eDP / LVDS / internal)
+            const panels = (data.EDID || []).map(e => { const [tech, hex] = e.split('|'); return { tech: +tech, p: parseEdid(hex) }; }).filter(x => x.p);
+            const internal = panels.find(x => [11, 6, 2147483648, -2147483648].includes(x.tech)) || panels.find(x => x.p.isDP) || panels[0];
+            if (internal) {
+                const p = internal.p;
+                const iface = internal.tech === 6 ? 'LVDS' : (internal.tech === 11 || p.isDP || internal.tech === 2147483648 || internal.tech === -2147483648) ? 'eDP' : 'External';
+                const part = p.texts.filter(t => t.length >= 6 && /\d/.test(t)).pop() || p.texts.join(' ');
+                rows.push(['LCD panel', `${p.makerName}${part ? ' ' + part : ''}`]);
+                rows.push(['LCD size / res', `${p.inch}" · ${p.w} x ${p.h} @ ${p.hz}Hz` + (p.bpc ? ` · ${p.bpc}-bit` : '')]);
+                rows.push(['LCD connector', `${iface} · ${estimatePins(p, iface)}`]);
+                panelPart = part;
+            }
+
+            fullSpecs = rows;
+            renderFullSpecs();
+            msg.textContent = `Full specs loaded (${rows.length} items). Added to the report.`;
+        }
+
+        function renderFullSpecs() {
+            const box = document.getElementById('fs-grid');
+            box.innerHTML = '';
+            fullSpecs.forEach(([k, v]) => {
+                const d = document.createElement('div');
+                d.className = 'spec';
+                d.innerHTML = `<span class="spec-k"></span><span class="spec-v"></span>`;
+                d.querySelector('.spec-k').textContent = k;
+                d.querySelector('.spec-v').textContent = v;
+                if (k === 'LCD connector' && panelPart) {
+                    const a = document.createElement('a');
+                    a.href = 'https://www.google.com/search?q=' + encodeURIComponent(panelPart + ' pin');
+                    a.target = '_blank'; a.rel = 'noopener'; a.className = 'spec-link';
+                    a.textContent = 'Confirm pins: search ' + panelPart + ' ↗';
+                    d.appendChild(a);
+                }
+                box.appendChild(d);
+            });
+            box.style.display = fullSpecs.length ? 'grid' : 'none';
         }
 
         // --- REPORT GENERATION ---
