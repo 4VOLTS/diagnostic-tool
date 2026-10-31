@@ -4,147 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Tools Diagnostic</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- ARDUINO THEME SETUP --- */
-        :root { 
-            --arduino-teal: #00979C;
-            --arduino-dark: #232121; 
-            --arduino-gray: #333333;
-            --card-bg: #2f3640;
+        /* --- MONOCHROME THEME (black & white) --- */
+        :root {
+            --bg: #000000;
+            --surface: #0c0c0c;
+            --surface-2: #161616;
+            --line: #242424;
+            --line-strong: #3d3d3d;
             --text: #ffffff;
-            --pass: #00979C;
-            --fail: #E47128; 
-            --batt: #62aeef;
-            --io: #e5b500; 
-            --wa: #25D366;
+            --muted: #8f8f8f;
+            --dim: #555555;
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+            --sans: 'Inter', system-ui, sans-serif;
+            --radius: 10px;
         }
 
-        body { 
-            font-family: 'Roboto', sans-serif; 
-            background: var(--arduino-dark); 
-            color: var(--text); 
-            margin: 0; padding: 0; 
-            overflow-x: hidden; 
-        }
-        
+        * { box-sizing: border-box; }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text); margin: 0; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
         /* HEADER */
-        header { 
-            background: var(--arduino-teal); 
-            color: white; 
-            padding: 15px 20px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            margin-bottom: 25px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        h1 { margin: 0; font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -1px; }
-        .header-sub { font-size: 14px; opacity: 0.9; font-family: 'Roboto Mono', monospace; text-transform: uppercase; }
-        .badge { background: white; color: var(--arduino-teal); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 28px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .logo { width: 42px; height: 42px; background: var(--text); color: var(--bg); border-radius: 8px; display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 22px; }
+        h1 { margin: 0; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+        .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+        .badge { border: 1px solid var(--text); color: var(--text); padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 2px; font-family: var(--mono); white-space: nowrap; }
 
         /* LAYOUT */
-        .container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1600px; margin: 0 auto; padding: 0 20px 20px 20px; }
+        .container { display: flex; gap: 24px; max-width: 1600px; margin: 0 auto; padding: 0 28px 28px; align-items: flex-start; }
 
-        /* SIDEBAR (Left) */
-        .sidebar { 
-            flex: 0 0 300px; 
-            background: var(--arduino-gray); 
-            padding: 20px; border-radius: 4px; border-left: 5px solid var(--fail); 
-            height: fit-content; font-family: 'Roboto Mono', monospace;
-        }
-        .sidebar h3 { margin-top: 0; color: #f1f1f1; border-bottom: 1px solid #555; padding-bottom: 10px; }
-        .check-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #444; align-items: center; font-size: 12px; }
-        .status { font-weight: bold; }
-        .status.wait { color: #888; }
-        .status.pass { color: var(--pass); }
-        .status.fail { color: var(--fail); }
+        /* SIDEBAR */
+        .sidebar { flex: 0 0 300px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; position: sticky; top: 20px; }
+        .sidebar h3 { margin: 0 0 4px; font-family: var(--mono); font-size: 13px; letter-spacing: 2px; }
+        .qc-progress { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); margin: 14px 0 6px; }
+        .qc-bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+        .qc-bar div { height: 100%; width: 0; background: var(--text); transition: width 0.3s; }
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .check-item:last-of-type { border-bottom: none; }
+        .check-item .idx { font-family: var(--mono); color: var(--dim); margin-right: 10px; font-size: 11px; }
+        .status { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 999px; border: 1px solid transparent; }
+        .status.wait { color: var(--dim); border-color: var(--line); }
+        .status.pass { color: var(--text); border-color: var(--text); }
+        .status.fail { color: var(--bg); background: var(--text); }
+        .sidebar-actions { display: grid; gap: 8px; margin-top: 18px; }
 
-        /* TOOLS AREA (Right) */
-        .main-content { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-content: start; }
-        
-        @media (max-width: 1100px) { .main-content { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 768px) { .container { flex-direction: column; } .sidebar { width: 100%; flex: none; } .main-content { grid-template-columns: 1fr; } }
-        
-        .tool-card { 
-            background: var(--arduino-gray); padding: 15px; border-radius: 4px; 
-            border-top: 4px solid var(--arduino-teal); text-align: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; justify-content: space-between;
-            min-height: 200px; 
+        /* TOOLS GRID */
+        .main-content { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-content: start; }
+        @media (max-width: 1150px) { .main-content { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 800px) {
+            header { padding: 16px; }
+            .header-sub { letter-spacing: 1px; }
+            .badge { font-size: 9px; padding: 3px 8px; letter-spacing: 1px; }
+            .container { flex-direction: column; padding: 0 16px 16px; }
+            .sidebar { width: 100%; flex: none; position: static; }
+            .main-content { grid-template-columns: 1fr; width: 100%; }
         }
-        .tool-card h3 { margin-top: 0; color: #fff; font-family: 'Roboto Mono', monospace; font-size: 16px; margin-bottom: 5px; }
-        .tool-card p { color: #aaa; font-size: 11px; margin-bottom: 10px; height: 30px; }
-        
-        /* SPECIAL CARDS */
-        .tool-card.batt-card { border-top: 4px solid var(--batt); }
-        .batt-info { font-size: 24px; font-weight: bold; margin: 5px 0; color: white; }
-        .batt-icon { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-        .tool-card.io-card { border-top: 4px solid var(--io); } 
+
+        .tool-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 210px; transition: border-color 0.2s; }
+        .tool-card:hover { border-color: var(--line-strong); }
+        .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+        .card-head .num { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+        .tool-card h3 { margin: 0; font-family: var(--mono); font-size: 15px; font-weight: 700; }
+        .tool-card p { color: var(--muted); font-size: 12px; margin: 0 0 16px; }
+        .verify { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+        .batt-info { font-family: var(--mono); font-size: 40px; font-weight: 700; letter-spacing: -1px; }
+        .batt-icon { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+        .io-row, .audio-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-family: var(--mono); font-size: 12px; border-bottom: 1px solid var(--line); }
+        .io-row:last-child, .audio-row:last-child { border-bottom: none; }
+        .io-btns { display: flex; gap: 6px; }
+        .io-btns button { width: auto; padding: 6px 12px; margin: 0; }
+        .btn-stack { display: grid; gap: 8px; }
+        .hint { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 6px; }
 
         /* BUTTONS */
-        button { 
-            background: #4E5B61; color: white; border: none; padding: 8px 15px; 
-            border-radius: 2px; cursor: pointer; transition: 0.2s; font-weight: bold; margin: 3px; 
-            font-family: 'Roboto', sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; width: 100%;
-        }
-        button:hover { background: #637178; }
-        button.primary { background: var(--arduino-teal); } button.primary:hover { background: #007e82; }
-        button.success { background: transparent; border: 1px solid var(--pass); color: var(--pass); } button.success:hover { background: var(--pass); color: white; }
-        button.danger { background: transparent; border: 1px solid var(--fail); color: var(--fail); } button.danger:hover { background: var(--fail); color: white; }
-        button.wa-btn { background: var(--wa); color: white; border: none; } button.wa-btn:hover { background: #1ebe57; }
+        button { background: transparent; color: var(--text); border: 1px solid var(--line-strong); padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; width: 100%; margin: 0; }
+        button:hover { border-color: var(--text); }
+        button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+        button.primary:hover { background: #d9d9d9; border-color: #d9d9d9; }
+        button.success { border-color: var(--text); }
+        button.success:hover { background: var(--text); color: var(--bg); }
+        button.danger { border-style: dashed; color: var(--muted); }
+        button.danger:hover { border-style: solid; border-color: var(--text); color: var(--text); }
 
         /* DROPDOWN */
-        select { background: #222; color: white; border: 1px solid #444; padding: 5px; width: 100%; margin-bottom: 10px; font-family: 'Roboto Mono', monospace; display: none; font-size: 11px; }
+        select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px; width: 100%; margin-bottom: 10px; font-family: var(--mono); display: none; font-size: 11px; }
 
-        /* INPUTS GLOBAL FIX */
         input, textarea { user-select: text !important; -webkit-user-select: text !important; }
 
         /* MODAL */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); overflow: auto; }
-        .modal-content { background-color: var(--arduino-gray); margin: 5% auto; padding: 25px; border: 1px solid #555; width: 90%; max-width: 900px; border-radius: 4px; text-align: center; position: relative; border-top: 5px solid var(--arduino-teal); }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow: auto; }
+        .modal-content { background: var(--surface); margin: 4% auto; padding: 28px; border: 1px solid var(--line-strong); width: 92%; max-width: 900px; border-radius: 14px; text-align: center; position: relative; }
+        .modal-content h2 { margin: 0 0 18px; font-family: var(--mono); font-size: 16px; letter-spacing: 3px; }
+        .close-btn { position: absolute; top: 16px; right: 20px; color: var(--muted); font-size: 26px; line-height: 1; cursor: pointer; }
+        .close-btn:hover { color: var(--text); }
 
-        /* INPUTS IN MODAL */
-        .report-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .report-inputs input { 
-            flex: 1; background: #222; border: 1px solid #555; color: var(--arduino-teal); padding: 10px; 
-            font-family: 'Roboto Mono', monospace; font-size: 13px; border-radius: 2px;
-        }
-        .report-inputs input::placeholder { color: #555; }
+        .report-inputs { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .report-inputs input { flex: 1; min-width: 160px; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); padding: 10px 12px; font-family: var(--mono); font-size: 13px; }
+        .report-inputs input:focus { outline: none; border-color: var(--text); }
+        .report-inputs input::placeholder { color: var(--dim); }
+        .report-inputs button { width: auto; }
+        #finalReportArea { width: 100%; height: 320px; font-family: var(--mono); font-size: 12px; background: var(--bg); color: #e6e6e6; border: 1px solid var(--line); border-radius: 8px; padding: 16px; resize: vertical; }
+        .report-actions { display: flex; gap: 10px; margin-top: 12px; }
 
         /* KEYBOARD (15.6" laptop layout with numpad; sizes are in key units, --u is set by JS to fit) */
         #kbModal .modal-content { max-width: 1200px; }
-        .kb-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 10px 0; font-family: 'Roboto Mono', monospace; font-size: 12px; text-align: left; }
+        .kb-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: left; }
         .kb-toolbar button { width: auto; }
-        .kb-count { color: var(--arduino-teal); font-size: 18px; font-weight: bold; }
-        .kb-last { color: #ddd; }
-        .kb-scroll { overflow-x: auto; padding-bottom: 5px; }
-        .keyboard-wrapper { --u: 44px; position: relative; margin: 10px auto 0; user-select: none; font-family: 'Roboto Mono', monospace; width: calc(var(--u) * 19.25); height: calc(var(--u) * 5.9); }
-        .key { position: absolute; box-sizing: border-box; background: #222; border: 1px solid #444; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: max(8px, calc(var(--u) * 0.24)); font-weight: bold; color: #ccc; transition: 0.05s; cursor: pointer; overflow: hidden; white-space: nowrap; }
-        .key.tested { background: var(--arduino-teal); color: white; border-color: var(--arduino-teal); }
-        .key.active { background: white !important; color: black !important; transform: scale(0.95); box-shadow: 0 0 10px white !important; }
-        .key.na { background: transparent; border-style: dashed; color: #666; text-decoration: line-through; }
-        .kb-hint { font-size: 11px; color: #888; margin-top: 10px; font-family: 'Roboto Mono', monospace; line-height: 1.5; }
+        .kb-count { color: var(--text); font-size: 22px; font-weight: 700; }
+        .kb-last { color: var(--text); }
+        .kb-scroll { overflow-x: auto; padding-bottom: 6px; }
+        .keyboard-wrapper { --u: 44px; position: relative; margin: 10px auto 0; user-select: none; font-family: var(--mono); width: calc(var(--u) * 19.25); height: calc(var(--u) * 5.9); }
+        .key { position: absolute; background: #111; border: 1px solid #2e2e2e; border-bottom-width: 3px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: max(8px, calc(var(--u) * 0.24)); font-weight: 600; color: #9a9a9a; transition: 0.06s; cursor: pointer; overflow: hidden; white-space: nowrap; }
+        .key:hover { border-color: var(--line-strong); }
+        .key.tested { background: var(--text); color: var(--bg); border-color: #bdbdbd; }
+        .key.active { background: var(--bg) !important; color: var(--text) !important; border: 2px solid var(--text) !important; transform: scale(0.94); }
+        .key.na { background: transparent; border: 1px dashed #333; color: #444; text-decoration: line-through; }
+        .kb-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+        .kb-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+        .lg-untested::before { background: #111; border: 1px solid #2e2e2e; }
+        .lg-tested::before { background: var(--text); }
+        .lg-na::before { border: 1px dashed #555; }
+        .kb-hint { font-size: 11px; color: var(--muted); margin-top: 12px; font-family: var(--mono); line-height: 1.7; }
 
         /* OVERLAYS */
-        #screenOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; cursor: pointer; }
-        #hz-tester { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #222; z-index: 9999; }
+        #screenOverlay { display: none; position: fixed; inset: 0; z-index: 9999; cursor: pointer; }
+        .overlay-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #888; font-size: 18px; pointer-events: none; font-family: var(--mono); text-align: center; mix-blend-mode: difference; }
+        #hz-tester { display: none; position: fixed; inset: 0; background: #111; z-index: 9999; }
         .moving-bar { position: absolute; top: 0; height: 100%; width: 20px; background: white; left: 0; }
-        .hz-info { position: absolute; top: 30px; left: 30px; font-family: 'Roboto Mono', monospace; background: rgba(30, 30, 30, 0.9); padding: 20px; border-left: 5px solid var(--arduino-teal); color: #ddd; }
-        #touchCanvas { background: #111; cursor: crosshair; touch-action: none; border: 1px dashed #555; }
+        .hz-info { position: absolute; top: 30px; left: 30px; font-family: var(--mono); background: rgba(0,0,0,0.9); padding: 20px 24px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--muted); font-size: 12px; }
+        #frame-count { color: var(--text); font-size: 44px; font-weight: 700; display: block; margin: 4px 0 10px; }
+        #res-disp { color: var(--text); font-size: 16px; }
+        #touchCanvas { background: var(--bg); cursor: crosshair; touch-action: none; border: 1px dashed var(--line-strong); border-radius: 8px; display: block; margin: 0 auto 14px; }
+        #touchModal .modal-content button { width: auto; padding: 10px 28px; }
 
-        .audio-playing-indicator { height: 4px; width: 0%; background: var(--arduino-teal); margin: 8px auto; transition: width 0.1s; border-radius: 2px; }
-        
-        .io-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size: 11px; text-align: left; }
-        .io-btns { display: flex; gap: 5px; }
-        .io-btns button { width: auto; padding: 4px 8px; }
+        .meter { background: var(--bg); height: 4px; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; margin: 4px 0 10px; }
+        .audio-playing-indicator { height: 4px; width: 0%; background: var(--text); margin: 8px auto; transition: width 0.1s; border-radius: 2px; }
+        .meter .audio-playing-indicator { margin: 0; height: 100%; }
+
+        /* PRINT: plain black on white */
+        @media print {
+            body { background: #fff; color: #000; }
+            header { border-color: #000; }
+            .logo { background: #000; color: #fff; }
+            .badge, .main-content, .sidebar-actions, .modal { display: none !important; }
+            .sidebar { border: 1px solid #000; background: #fff; position: static; }
+            .check-item { border-color: #ccc; }
+            .status.pass { color: #000; border-color: #000; }
+            .status.fail { color: #fff; background: #000; }
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div>
-            <h1>4TOOLS</h1>
-            <div class="header-sub">DEVELOPED BY 4VOLTS</div>
+        <div class="brand">
+            <div class="logo">4</div>
+            <div>
+                <h1>4TOOLS</h1>
+                <div class="header-sub">Diagnostic Suite · by 4VOLTS</div>
+            </div>
         </div>
         <div class="badge">PRO EDITION</div>
     </header>
@@ -152,146 +173,136 @@
     <div class="container">
         <!-- SIDEBAR -->
         <div class="sidebar">
-            <h3>// QC_LOG</h3>
-            <div class="check-item"><span>01_WiFi</span> <span id="s-wifi" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>02_Battery</span> <span id="s-batt" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>03_Keys</span> <span id="s-kb" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>04_Display</span> <span id="s-lcd" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>05_Touch</span> <span id="s-touch" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>06_Camera</span> <span id="s-cam" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>07_Mic</span> <span id="s-mic" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>08_Speaker</span> <span id="s-spk" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>09_USB</span> <span id="s-usb" class="status wait">WAITING...</span></div>
-            <div class="check-item"><span>10_HDMI</span> <span id="s-hdmi" class="status wait">WAITING...</span></div>
-            <br>
-            <button class="primary" onclick="openReportModal()" style="background-color: var(--pass);">GENERATE REPORT</button>
-            <button onclick="window.print()" style="width:100%; background: #444;">PRINT LOG</button>
+            <h3>QC_LOG</h3>
+            <div class="qc-progress"><span>COMPLETED</span><span id="qc-count">0 / 10</span></div>
+            <div class="qc-bar"><div id="qc-bar"></div></div>
+            <div class="check-item"><span><span class="idx">01</span>WiFi</span> <span id="s-wifi" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">02</span>Battery</span> <span id="s-batt" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">03</span>Keyboard</span> <span id="s-kb" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">04</span>Display</span> <span id="s-lcd" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">05</span>Touch</span> <span id="s-touch" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">06</span>Camera</span> <span id="s-cam" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">07</span>Mic</span> <span id="s-mic" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">08</span>Speaker</span> <span id="s-spk" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">09</span>USB</span> <span id="s-usb" class="status wait">WAITING...</span></div>
+            <div class="check-item"><span><span class="idx">10</span>HDMI</span> <span id="s-hdmi" class="status wait">WAITING...</span></div>
+            <div class="sidebar-actions">
+                <button class="primary" onclick="openReportModal()">GENERATE REPORT</button>
+                <button onclick="window.print()">PRINT LOG</button>
+            </div>
         </div>
 
-        <!-- MAIN TOOLS GRID (3 COLUMNS) -->
+        <!-- MAIN TOOLS GRID -->
         <div class="main-content">
 
-            <!-- 1. BATTERY -->
-            <div class="tool-card batt-card">
+            <!-- BATTERY -->
+            <div class="tool-card">
                 <div>
-                    <h3>BATTERY.status()</h3>
+                    <div class="card-head"><span class="num">02</span><h3>BATTERY.status()</h3></div>
                     <p>Charging circuit check.</p>
                     <div class="batt-info" id="battLevel">--%</div>
                     <div class="batt-icon" id="battState">DETECTING...</div>
                 </div>
-                <div id="batt-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('batt', true)">OK</button>
-                        <button class="danger" onclick="updateStatus('batt', false)">FAIL</button>
-                    </div>
+                <div class="verify" id="batt-verify">
+                    <button class="success" onclick="updateStatus('batt', true)">OK</button>
+                    <button class="danger" onclick="updateStatus('batt', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 2. TOUCH / DRAW -->
+            <!-- KEYBOARD -->
             <div class="tool-card">
                 <div>
-                    <h3>INPUT.touch()</h3>
-                    <p>Digitizer & trackpad test.</p>
-                    <button class="primary" onclick="openTouchModal()">OPEN CANVAS</button>
-                </div>
-                <div id="touch-verify" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('touch', true)">OK</button>
-                        <button class="danger" onclick="updateStatus('touch', false)">FAIL</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. KEYBOARD -->
-            <div class="tool-card">
-                <div>
-                    <h3>KEYBOARD.test()</h3>
+                    <div class="card-head"><span class="num">03</span><h3>KEYBOARD.test()</h3></div>
                     <p>15.6" layout + numpad.</p>
                     <button class="primary" onclick="openKeyboardModal()">LAUNCH TEST</button>
                 </div>
-                <div id="kb-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('kb', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('kb', false)">FAIL</button>
-                    </div>
+                <div class="verify" id="kb-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('kb', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('kb', false)">FAIL</button>
                 </div>
             </div>
 
-            <!-- 4. SCREEN -->
+            <!-- SCREEN -->
             <div class="tool-card">
                 <div>
-                    <h3>DISPLAY.test()</h3>
-                    <p>Pixels & Refresh rate.</p>
-                    <button class="primary" onclick="startColorTest()">COLOR SEQ</button>
-                    <button class="primary" onclick="startHzTest()">MOTION HZ</button>
+                    <div class="card-head"><span class="num">04</span><h3>DISPLAY.test()</h3></div>
+                    <p>Pixels &amp; refresh rate.</p>
+                    <div class="btn-stack">
+                        <button class="primary" onclick="startColorTest()">COLOR SEQ</button>
+                        <button onclick="startHzTest()">MOTION HZ</button>
+                    </div>
                 </div>
-                <div id="lcd-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('lcd', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('lcd', false)">FAIL</button>
+                <div class="verify" id="lcd-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('lcd', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('lcd', false)">FAIL</button>
+                </div>
+            </div>
+
+            <!-- TOUCH / DRAW -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">05</span><h3>INPUT.touch()</h3></div>
+                    <p>Digitizer &amp; trackpad test.</p>
+                    <button class="primary" onclick="openTouchModal()">OPEN CANVAS</button>
+                </div>
+                <div class="verify" id="touch-verify">
+                    <button class="success" onclick="updateStatus('touch', true)">OK</button>
+                    <button class="danger" onclick="updateStatus('touch', false)">FAIL</button>
+                </div>
+            </div>
+
+            <!-- CAMERA -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">06</span><h3>CAMERA.init()</h3></div>
+                    <p>Visual sensor check.</p>
+                    <select id="camSelect" onchange="startCam(this.value)"></select>
+                    <video id="camFeed" autoplay playsinline style="width:100%; display:none; border-radius:6px; background:black; border:1px solid var(--line); margin-bottom:8px; height:90px; object-fit:cover;"></video>
+                    <button class="primary" onclick="startCam()">START CAM</button>
+                </div>
+                <div class="verify" id="cam-verify" style="display:none;">
+                    <button class="success" onclick="updateStatus('cam', true)">PASS</button>
+                    <button class="danger" onclick="updateStatus('cam', false)">FAIL</button>
+                </div>
+            </div>
+
+            <!-- AUDIO IO -->
+            <div class="tool-card">
+                <div>
+                    <div class="card-head"><span class="num">07</span><h3>AUDIO.io()</h3></div>
+                    <p>Mic in &amp; speaker out.</p>
+                    <div class="meter"><div id="micBar" class="audio-playing-indicator"></div></div>
+                    <div class="btn-stack">
+                        <button class="primary" onclick="startMic()">TEST MIC</button>
+                        <button id="btn-spk" class="primary" onclick="toggleSpeakerTest()">▶ PLAY MUSIC (30s)</button>
+                    </div>
+                    <div id="spk-indicator" class="audio-playing-indicator"></div>
+                    <div id="spk-status" class="hint">*Need Internet</div>
+                </div>
+                <div style="margin-top:12px; padding-top:6px; border-top:1px solid var(--line);">
+                    <div class="audio-row">
+                        <span>MIC</span>
+                        <div class="io-btns"><button class="success" onclick="updateStatus('mic', true)">OK</button><button class="danger" onclick="updateStatus('mic', false)">NO</button></div>
+                    </div>
+                    <div class="audio-row">
+                        <span>SPK</span>
+                        <div class="io-btns"><button class="success" onclick="updateStatus('spk', true)">OK</button><button class="danger" onclick="updateStatus('spk', false)">NO</button></div>
                     </div>
                 </div>
             </div>
 
-            <!-- 5. PHYSICAL PORTS -->
-            <div class="tool-card io-card">
+            <!-- PHYSICAL PORTS -->
+            <div class="tool-card">
                 <div>
-                    <h3>PORTS.io()</h3>
+                    <div class="card-head"><span class="num">09</span><h3>PORTS.io()</h3></div>
                     <p>Manual I/O verification.</p>
                     <div class="io-row">
-                        <span>USB:</span>
+                        <span>USB</span>
                         <div class="io-btns"><button class="success" onclick="updateStatus('usb', true)">OK</button><button class="danger" onclick="updateStatus('usb', false)">NO</button></div>
                     </div>
                     <div class="io-row">
-                        <span>HDMI:</span>
+                        <span>HDMI</span>
                         <div class="io-btns"><button class="success" onclick="updateStatus('hdmi', true)">OK</button><button class="danger" onclick="updateStatus('hdmi', false)">NO</button></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. CAMERA -->
-            <div class="tool-card">
-                <div>
-                    <h3>CAMERA.init()</h3>
-                    <p>Visual sensor check.</p>
-                    <select id="camSelect" onchange="startCam(this.value)"></select>
-                    <video id="camFeed" autoplay playsinline style="width:100%; display:none; border-radius:2px; background:black; border:1px solid #444; margin-bottom:5px; height:80px; object-fit:cover;"></video>
-                    <button class="primary" onclick="startCam()">START CAM</button>
-                </div>
-                <div id="cam-verify" style="display:none; margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button class="success" onclick="updateStatus('cam', true)">PASS</button>
-                        <button class="danger" onclick="updateStatus('cam', false)">FAIL</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. AUDIO IO -->
-            <div class="tool-card">
-                <div>
-                    <h3>AUDIO.io()</h3>
-                    <p>Mic In & Speaker Out.</p>
-                    
-                    <!-- MIC -->
-                    <div style="background:#222; height:4px; margin:5px 0; border:1px solid #444;">
-                        <div id="micBar" class="audio-playing-indicator" style="width:0%;"></div>
-                    </div>
-                    <button class="primary" onclick="startMic()">TEST MIC</button>
-
-                    <!-- SPK -->
-                    <button id="btn-spk" class="primary" onclick="toggleSpeakerTest()" style="margin-top:5px;">▶ MUSIC (30s)</button>
-                    <div id="spk-indicator" class="audio-playing-indicator"></div>
-                    <div id="spk-status" style="font-size:9px; color:#666; margin-top:2px;">*Need Internet</div>
-                </div>
-                
-                <div style="margin-top:10px; border-top:1px solid #444; padding-top:10px; font-size:10px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span>MIC:</span>
-                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('mic', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('mic', false)" style="padding:2px 5px;">NO</button></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>SPK:</span>
-                        <div style="display:flex; gap:2px;"><button class="success" onclick="updateStatus('spk', true)" style="padding:2px 5px;">OK</button><button class="danger" onclick="updateStatus('spk', false)" style="padding:2px 5px;">NO</button></div>
                     </div>
                 </div>
             </div>
@@ -303,40 +314,38 @@
     <div id="reportModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="document.getElementById('reportModal').style.display='none'">&times;</span>
-            <h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">GENERATED_REPORT</h2>
-            
+            <h2>GENERATED_REPORT</h2>
             <div class="report-inputs">
                 <input type="text" id="modalTech" placeholder="Technician Name" value="">
                 <input type="text" id="modalComp" placeholder="Shop / Company Name" value="">
-                <button class="primary" onclick="generateReport()" style="width:auto;">🔄 REFRESH</button>
+                <button onclick="generateReport()">↻ REFRESH</button>
             </div>
-
-            <textarea id="finalReportArea" style="width:100%;height:300px;font-family:'Roboto Mono',monospace;background:#111;color:#ddd;border:none;padding:15px;"></textarea>
-            
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="success" onclick="copyReport()" style="flex:1;">COPY TEXT</button>
-                <button class="wa-btn" onclick="shareToWhatsapp()" style="flex:1;">SEND TO WHATSAPP 📱</button>
+            <textarea id="finalReportArea"></textarea>
+            <div class="report-actions">
+                <button class="primary" onclick="copyReport()">COPY TEXT</button>
+                <button onclick="shareToWhatsapp()">SEND TO WHATSAPP</button>
             </div>
         </div>
     </div>
 
-    <!-- OTHER MODALS -->
+    <!-- KEYBOARD MODAL -->
     <div id="kbModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeKeyboardModal()">&times;</span>
-            <h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">KEYBOARD_TEST</h2>
+            <h2>KEYBOARD_TEST</h2>
             <div class="kb-toolbar">
                 <div>
-                    TESTED: <span id="kb-count" class="kb-count">0 / 0</span> <span id="kb-na-count" style="color:#888;"></span><br>
+                    TESTED <span id="kb-count" class="kb-count">0 / 0</span> <span id="kb-na-count"></span><br>
                     LAST KEY: <span id="kb-last" class="kb-last">—</span>
                 </div>
-                <div style="display:flex; gap:5px;">
+                <div style="display:flex; gap:8px;">
                     <button onclick="resetKeyboardTest()">RESET</button>
                     <button class="success" onclick="updateStatus('kb', true); closeKeyboardModal()">PASS</button>
                     <button class="danger" onclick="updateStatus('kb', false); closeKeyboardModal()">FAIL</button>
                 </div>
             </div>
             <div class="kb-scroll"><div class="keyboard-wrapper" id="keyboard-layout"></div></div>
+            <div class="kb-legend"><span class="lg-untested">Untested</span><span class="lg-tested">Tested</span><span class="lg-na">N/A</span></div>
             <div class="kb-hint">
                 Press every key. Click a key to mark it N/A (not on this model) — click again to undo.<br>
                 Fn can't be seen by browsers: check it with Fn+F-key combos. F-keys changing volume/brightness? Hold Fn.<br>
@@ -344,9 +353,27 @@
             </div>
         </div>
     </div>
-    <div id="touchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span><h2 style="color:var(--arduino-teal);font-family:'Roboto Mono';">TOUCH_TEST</h2><canvas id="touchCanvas" width="800" height="400"></canvas><br><button class="primary" onclick="clearCanvas()">CLEAR</button></div></div>
-    <div id="screenOverlay"><div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#888; font-size:20px; pointer-events:none; font-family:'Roboto Mono';">CLICK_TO_CYCLE_COLOR<br>ESC_TO_EXIT</div></div>
-    <div id="hz-tester"><div class="moving-bar" id="hz-bar"></div><div class="hz-info"><span style="color:#aaa; font-size:12px;">// REFRESH RATE MONITOR</span><br>FPS: <span id="frame-count" style="color:var(--arduino-teal); font-size:40px;">CALC...</span><br><div style="margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-left:3px solid var(--arduino-teal);">RES: <span id="res-disp" style="color:white;font-size:18px;">DETECT...</span></div></div></div>
+
+    <!-- TOUCH MODAL -->
+    <div id="touchModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('touchModal').style.display='none'">&times;</span>
+            <h2>TOUCH_TEST</h2>
+            <canvas id="touchCanvas" width="800" height="400"></canvas>
+            <button onclick="clearCanvas()">CLEAR</button>
+        </div>
+    </div>
+
+    <!-- SCREEN OVERLAYS -->
+    <div id="screenOverlay"><div class="overlay-hint">CLICK TO CYCLE COLOR<br>ESC TO EXIT</div></div>
+    <div id="hz-tester">
+        <div class="moving-bar" id="hz-bar"></div>
+        <div class="hz-info">
+            // REFRESH RATE MONITOR
+            <span id="frame-count">CALC...</span>
+            RES: <span id="res-disp">DETECT...</span>
+        </div>
+    </div>
 
     <script>
         const apiKey = ""; 
@@ -396,6 +423,14 @@
             const el = document.getElementById('s-' + id);
             if (isPass) { el.innerText = "PASS_OK"; el.className = "status pass"; } 
             else { el.innerText = "FAIL_ERR"; el.className = "status fail"; }
+            updateQcProgress();
+        }
+
+        function updateQcProgress() {
+            const all = document.querySelectorAll('.sidebar .status');
+            const done = [...all].filter(el => !el.classList.contains('wait')).length;
+            document.getElementById('qc-count').textContent = `${done} / ${all.length}`;
+            document.getElementById('qc-bar').style.width = (done / all.length * 100) + '%';
         }
 
         // --- KEY CAPTURE ---
@@ -418,7 +453,7 @@
         function initBattery() {
             const l = document.getElementById('battLevel'); const s = document.getElementById('battState');
             if ('getBattery' in navigator) navigator.getBattery().then(b => {
-                const u = () => { l.innerText=(b.level*100).toFixed(0)+"%"; s.innerText=b.charging?"CHARGING (AC) ⚡":"BATTERY MODE"; s.style.color=b.charging?"#00ff00":"#ff9900"; };
+                const u = () => { l.innerText=(b.level*100).toFixed(0)+"%"; s.innerText=b.charging?"CHARGING (AC) ⚡":"BATTERY MODE"; s.style.color=b.charging?"#ffffff":"#8f8f8f"; };
                 u(); b.addEventListener('chargingchange', u); b.addEventListener('levelchange', u);
             }); else { l.innerText="N/A"; s.innerText="NO API"; }
         }
@@ -427,7 +462,7 @@
             const m=document.getElementById('touchModal'); m.style.display="block";
             const c=document.getElementById('touchCanvas'); const x=c.getContext('2d');
             c.width=c.parentElement.clientWidth-50; let p=false;
-            const d=(e)=>{ if(!p)return; const r=c.getBoundingClientRect(); const X=(e.clientX||e.touches[0].clientX)-r.left; const Y=(e.clientY||e.touches[0].clientY)-r.top; x.lineWidth=5; x.lineCap='round'; x.strokeStyle='#00979C'; x.lineTo(X,Y); x.stroke(); x.beginPath(); x.moveTo(X,Y); };
+            const d=(e)=>{ if(!p)return; const r=c.getBoundingClientRect(); const X=(e.clientX||e.touches[0].clientX)-r.left; const Y=(e.clientY||e.touches[0].clientY)-r.top; x.lineWidth=5; x.lineCap='round'; x.strokeStyle='#ffffff'; x.lineTo(X,Y); x.stroke(); x.beginPath(); x.moveTo(X,Y); };
             c.onmousedown=(e)=>{p=true;d(e)}; c.onmouseup=()=>{p=false;x.beginPath()}; c.onmousemove=d;
             c.ontouchstart=(e)=>{e.preventDefault();p=true;d(e)}; c.ontouchend=(e)=>{e.preventDefault();p=false;x.beginPath()}; c.ontouchmove=(e)=>{e.preventDefault();d(e)};
         }
@@ -537,7 +572,7 @@
             });
             document.getElementById('kb-last').textContent = '—';
             const s = document.getElementById('s-kb');
-            s.innerText = 'WAITING...'; s.className = 'status wait';
+            s.innerText = 'WAITING...'; s.className = 'status wait'; updateQcProgress();
             updateKbProgress();
         }
 
